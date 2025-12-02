@@ -1,0 +1,29 @@
+# Don't publish these files to npm
+
+# Test and documentation files
+TESTING.md
+QUICK-START.md
+PUBLISHING.md
+test-flow.json
+test-docker.sh
+
+# Development files
+.git
+.gitignore
+.DS_Store
+*.log
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# Node modules (if accidentally present)
+node_modules/
+
+# Temporary files
+*.tmp
+*.temp
+
+

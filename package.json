@@ -1,0 +1,46 @@
+{
+  "name": "node-red-contrib-secrets-vault",
+  "version": "1.2.0",
+  "description": "A credential vault node for Node-RED using built-in encrypted credential storage. Store multiple credentials securely and retrieve them by key at runtime.",
+  "main": "vault.js",
+  "scripts": {
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "node-red",
+    "node-red-contrib",
+    "vault",
+    "credentials",
+    "secrets",
+    "security",
+    "encrypted",
+    "credential-store",
+    "password-manager"
+  ],
+  "node-red": {
+    "version": ">=2.0.0",
+    "nodes": {
+      "vault": "vault.js"
+    }
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "author": "Careful Computer",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/node-red-contrib-secrets-vault.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/node-red-contrib-secrets-vault/issues"
+  },
+  "homepage": "https://github.com/yourusername/node-red-contrib-secrets-vault#readme",
+  "files": [
+    "vault.js",
+    "vault.html",
+    "README.md",
+    "LICENSE"
+  ]
+}
+

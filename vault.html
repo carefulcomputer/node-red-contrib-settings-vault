@@ -1,0 +1,517 @@
+<!-- Config Node: vault-config -->
+<script type="text/javascript">
+    RED.nodes.registerType('vault-config', {
+        category: 'config',
+        defaults: {
+            name: { value: '', required: true }
+        },
+        credentials: {
+            store: { type: 'text' }
+        },
+        label: function() {
+            return this.name || 'vault-config';
+        },
+        oneditprepare: function() {
+            const node = this;
+            let entryCount = 0;
+            let fieldCounters = {};
+            
+            // Parse existing vault store and populate entries
+            function loadEntries() {
+                // Get existing vault data
+                let storeValue = (node.credentials && node.credentials.store) ? node.credentials.store : '{}';
+                let entries = {};
+                
+                try {
+                    if (storeValue && storeValue.trim() !== '' && storeValue !== '{}') {
+                        entries = JSON.parse(storeValue);
+                    }
+                } catch (err) {
+                    RED.notify('Failed to parse existing vault data: ' + err.message, 'warning');
+                    entries = {};
+                }
+                
+                // Clear existing entries UI
+                $('#vault-entries-list').empty();
+                entryCount = 0;
+                fieldCounters = {};
+                
+                // Populate entries from vault
+                for (const key in entries) {
+                    if (entries.hasOwnProperty(key)) {
+                        addEntryRow(key, entries[key]);
+                    }
+                }
+                
+                // Add one empty row if no entries exist
+                if (entryCount === 0) {
+                    addEntryRow('', {});
+                }
+            }
+            
+            // Add a new vault entry (key with multiple fields)
+            function addEntryRow(key, credentialsObj) {
+                const entryId = 'vault-entry-' + entryCount;
+                entryCount++;
+                fieldCounters[entryId] = 0;
+                
+                const entryContainer = $('<div>', {
+                    id: entryId,
+                    class: 'vault-entry-container',
+                    style: 'margin-bottom: 15px; padding: 12px; border: 2px solid #ddd; border-radius: 6px; background-color: #f9f9f9;'
+                });
+                
+                // Entry header with key and delete button
+                const headerRow = $('<div>', {
+                    style: 'margin-bottom: 10px; display: flex; align-items: center;'
+                });
+                
+                const keyLabel = $('<label>', {
+                    style: 'margin-right: 8px; font-weight: bold;'
+                }).text('Key:');
+                
+                const keyInput = $('<input>', {
+                    type: 'text',
+                    class: 'vault-entry-key',
+                    value: key,
+                    placeholder: 'e.g. serviceA',
+                    style: 'flex: 1; max-width: 300px; margin-right: 10px;'
+                });
+                
+                const deleteEntryBtn = $('<button>', {
+                    type: 'button',
+                    class: 'red-ui-button',
+                    style: 'margin-left: auto;'
+                }).html('<i class="fa fa-trash"></i> Delete Entry').on('click', function() {
+                    entryContainer.remove();
+                });
+                
+                headerRow.append(keyLabel).append(keyInput).append(deleteEntryBtn);
+                
+                // Fields list container
+                const fieldsLabel = $('<label>', {
+                    style: 'display: block; margin-top: 10px; margin-bottom: 5px; font-weight: bold;'
+                }).text('Credential Fields:');
+                
+                const fieldsList = $('<div>', {
+                    class: 'vault-fields-list',
+                    style: 'margin-left: 20px;'
+                });
+                
+                // Add field button
+                const addFieldBtn = $('<button>', {
+                    type: 'button',
+                    class: 'red-ui-button',
+                    style: 'margin-top: 8px; margin-left: 20px;'
+                }).html('<i class="fa fa-plus"></i> Add Field').on('click', function() {
+                    addFieldRow(entryId, fieldsList, '', 'str', '');
+                });
+                
+                // Assemble entry
+                entryContainer.append(headerRow).append(fieldsLabel).append(fieldsList).append(addFieldBtn);
+                $('#vault-entries-list').append(entryContainer);
+                
+                // Populate existing fields
+                if (credentialsObj && typeof credentialsObj === 'object') {
+                    for (const fieldName in credentialsObj) {
+                        if (credentialsObj.hasOwnProperty(fieldName)) {
+                            const value = credentialsObj[fieldName];
+                            const type = detectType(value);
+                            addFieldRow(entryId, fieldsList, fieldName, type, value);
+                        }
+                    }
+                }
+                
+                // Add one empty field if no fields exist
+                if (fieldsList.children().length === 0) {
+                    addFieldRow(entryId, fieldsList, '', 'str', '');
+                }
+            }
+            
+            // Detect type from value
+            function detectType(value) {
+                if (value === null || value === undefined) return 'str';
+                if (typeof value === 'number') return 'num';
+                if (typeof value === 'boolean') return 'bool';
+                if (value instanceof Date) return 'date';
+                if (Buffer.isBuffer(value)) return 'bin';
+                if (typeof value === 'object') return 'json';
+                return 'str';
+            }
+            
+            // Add a credential field within an entry
+            function addFieldRow(entryId, fieldsList, fieldName, fieldType, fieldValue) {
+                const fieldId = entryId + '-field-' + fieldCounters[entryId];
+                fieldCounters[entryId]++;
+                
+                const fieldRow = $('<div>', {
+                    id: fieldId,
+                    class: 'vault-field-row',
+                    style: 'margin-bottom: 8px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; background-color: #fff; display: flex; align-items: center; gap: 8px;'
+                });
+                
+                // Field name input
+                const fieldNameLabel = $('<span>', {
+                    style: 'min-width: 50px;'
+                }).text('Field:');
+                
+                const fieldNameInput = $('<input>', {
+                    type: 'text',
+                    class: 'vault-field-name',
+                    value: fieldName,
+                    placeholder: 'e.g. username',
+                    style: 'width: 150px;'
+                });
+                
+                // TypedInput for value
+                const valueInputContainer = $('<div>', {
+                    style: 'flex: 1; min-width: 200px;'
+                });
+                
+                const valueInput = $('<input>', {
+                    type: 'text',
+                    class: 'vault-field-value'
+                });
+                
+                valueInputContainer.append(valueInput);
+                
+                // Delete field button
+                const deleteFieldBtn = $('<button>', {
+                    type: 'button',
+                    class: 'red-ui-button red-ui-button-small',
+                    style: 'min-width: 30px;'
+                }).html('<i class="fa fa-times"></i>').on('click', function() {
+                    fieldRow.remove();
+                });
+                
+                // Assemble field row
+                fieldRow.append(fieldNameLabel).append(fieldNameInput).append(valueInputContainer).append(deleteFieldBtn);
+                fieldsList.append(fieldRow);
+                
+                // Initialize TypedInput widget
+                valueInput.typedInput({
+                    types: ['str', 'num', 'bool', 'json', 'bin', 'date'],
+                    default: fieldType || 'str'
+                });
+                
+                // Set initial value and type
+                valueInput.typedInput('type', fieldType || 'str');
+                if (fieldValue !== undefined && fieldValue !== null) {
+                    if (fieldType === 'json') {
+                        valueInput.typedInput('value', JSON.stringify(fieldValue));
+                    } else {
+                        valueInput.typedInput('value', String(fieldValue));
+                    }
+                }
+            }
+            
+            // Add entry button handler
+            $('#vault-add-entry').on('click', function() {
+                addEntryRow('', {});
+            });
+            
+            // Load existing entries
+            loadEntries();
+        },
+        oneditsave: function() {
+            const vault = {};
+            let hasError = false;
+            
+            // Collect all entries from UI
+            $('.vault-entry-container').each(function() {
+                const entryContainer = $(this);
+                const key = entryContainer.find('.vault-entry-key').val().trim();
+                
+                // Skip entries with empty key and no fields
+                const hasFields = entryContainer.find('.vault-field-row').length > 0;
+                if (key === '' && !hasFields) {
+                    return; // Skip this entry
+                }
+                
+                // Validate key is provided
+                if (key === '') {
+                    RED.notify('Entry with empty key found. Please provide a key or delete the entry.', 'error');
+                    hasError = true;
+                    return false;
+                }
+                
+                // Check for duplicate keys
+                if (vault.hasOwnProperty(key)) {
+                    RED.notify('Duplicate key found: "' + key + '". Keys must be unique.', 'error');
+                    hasError = true;
+                    return false;
+                }
+                
+                // Collect all fields within this entry
+                const credentials = {};
+                let hasFieldError = false;
+                
+                entryContainer.find('.vault-field-row').each(function() {
+                    const fieldRow = $(this);
+                    const fieldName = fieldRow.find('.vault-field-name').val().trim();
+                    const valueInput = fieldRow.find('.vault-field-value');
+                    
+                    // Skip empty fields
+                    if (fieldName === '' && valueInput.typedInput('value') === '') {
+                        return; // Skip this field
+                    }
+                    
+                    // Validate field name is provided
+                    if (fieldName === '') {
+                        RED.notify('Entry "' + key + '" has a field with no name. Please provide a field name or delete the field.', 'error');
+                        hasFieldError = true;
+                        return false;
+                    }
+                    
+                    // Check for duplicate field names within this entry
+                    if (credentials.hasOwnProperty(fieldName)) {
+                        RED.notify('Entry "' + key + '" has duplicate field name: "' + fieldName + '".', 'error');
+                        hasFieldError = true;
+                        return false;
+                    }
+                    
+                    // Get value and type from TypedInput
+                    const fieldType = valueInput.typedInput('type');
+                    let fieldValue = valueInput.typedInput('value');
+                    
+                    // Convert value based on type
+                    try {
+                        switch (fieldType) {
+                            case 'num':
+                                fieldValue = Number(fieldValue);
+                                if (isNaN(fieldValue)) {
+                                    throw new Error('Invalid number');
+                                }
+                                break;
+                            case 'bool':
+                                if (fieldValue === 'true' || fieldValue === true) {
+                                    fieldValue = true;
+                                } else if (fieldValue === 'false' || fieldValue === false) {
+                                    fieldValue = false;
+                                } else {
+                                    throw new Error('Invalid boolean (must be true or false)');
+                                }
+                                break;
+                            case 'json':
+                                fieldValue = JSON.parse(fieldValue);
+                                break;
+                            case 'date':
+                                // TypedInput for date returns timestamp
+                                fieldValue = Number(fieldValue);
+                                break;
+                            case 'bin':
+                                // Store as base64 string for Buffer
+                                fieldValue = fieldValue;
+                                break;
+                            case 'str':
+                            default:
+                                // Keep as string
+                                break;
+                        }
+                        
+                        credentials[fieldName] = fieldValue;
+                    } catch (err) {
+                        RED.notify('Invalid value for field "' + fieldName + '" in entry "' + key + '": ' + err.message, 'error');
+                        hasFieldError = true;
+                        return false;
+                    }
+                });
+                
+                if (hasFieldError) {
+                    hasError = true;
+                    return false;
+                }
+                
+                vault[key] = credentials;
+            });
+            
+            if (hasError) {
+                return false;
+            }
+            
+            // Save vault as JSON string
+            $('#node-config-input-store').val(JSON.stringify(vault));
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="vault-config">
+    <div class="form-row">
+        <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-config-input-name" placeholder="Vault name">
+    </div>
+    
+    <div class="form-row">
+        <label style="width: 100%;"><i class="fa fa-lock"></i> Vault Entries</label>
+        <div id="vault-entries-list" style="margin-top: 10px; width: 100%; max-height: 500px; overflow-y: auto;"></div>
+    </div>
+    
+    <div class="form-row">
+        <button type="button" id="vault-add-entry" class="red-ui-button">
+            <i class="fa fa-plus"></i> Add Entry
+        </button>
+    </div>
+    
+    <!-- Hidden field to store the actual JSON -->
+    <input type="hidden" id="node-config-input-store">
+    
+    <div class="form-tips">
+        <strong>Tip:</strong> Each entry has a unique key and multiple credential fields.<br/>
+        Each field has a name and typed value (string, number, boolean, JSON, buffer, or date).<br/>
+        Use <strong>Add Entry</strong> to create new vault entries, <strong>Add Field</strong> to add credential fields.
+    </div>
+</script>
+
+<script type="text/html" data-help-name="vault-config">
+    <p>Configuration node that stores multiple credentials in a single encrypted vault with an intuitive field-based interface.</p>
+    
+    <h3>Properties</h3>
+    <dl class="message-properties">
+        <dt>Name <span class="property-type">string</span></dt>
+        <dd>A descriptive name for this vault instance.</dd>
+        
+        <dt>Vault Entries <span class="property-type">array</span></dt>
+        <dd>A list of credential entries. Each entry consists of:
+            <ul>
+                <li><strong>Key:</strong> A unique identifier (e.g., "serviceA", "database1")</li>
+                <li><strong>Credential Fields:</strong> Multiple fields, each with:
+                    <ul>
+                        <li><strong>Field Name:</strong> The credential property name (e.g., "username", "password", "port")</li>
+                        <li><strong>Type:</strong> Data type (str, num, bool, json, bin, date)</li>
+                        <li><strong>Value:</strong> The actual credential value</li>
+                    </ul>
+                </li>
+            </ul>
+        </dd>
+    </dl>
+    
+    <h3>Supported Types</h3>
+    <ul>
+        <li><strong>str</strong> - String/text values (usernames, hostnames, tokens)</li>
+        <li><strong>num</strong> - Numeric values (ports, timeouts, IDs)</li>
+        <li><strong>bool</strong> - Boolean values (true/false flags)</li>
+        <li><strong>json</strong> - JSON objects or arrays (complex nested data)</li>
+        <li><strong>bin</strong> - Binary/Buffer data (certificates, binary tokens)</li>
+        <li><strong>date</strong> - Timestamps (expiration dates, creation times)</li>
+    </ul>
+    
+    <h3>Details</h3>
+    <p>This node stores all credentials in a single encrypted field using Node-RED's built-in credential encryption mechanism. The vault content is stored in <code>flows_cred.json</code> and never appears in plain text in <code>flows.json</code>.</p>
+    
+    <p>The vault is <strong>read-only at runtime</strong>. To add, modify, or delete credentials, edit this configuration node and redeploy the flow.</p>
+    
+    <h3>Usage</h3>
+    <ol>
+        <li>Click <strong>"Add Entry"</strong> to create a new vault entry (with a unique key)</li>
+        <li>Within each entry, click <strong>"Add Field"</strong> to add credential fields</li>
+        <li>For each field:
+            <ul>
+                <li>Enter the field name (e.g., "username", "password")</li>
+                <li>Select the type from dropdown (str, num, bool, json, bin, date)</li>
+                <li>Enter the value</li>
+            </ul>
+        </li>
+        <li>Click <strong>"×"</strong> to remove individual fields</li>
+        <li>Click <strong>"Delete Entry"</strong> to remove entire entries</li>
+        <li>Click <strong>"Done"</strong> to save (validates all values)</li>
+    </ol>
+    
+    <h3>Example: Web Service Credentials</h3>
+    <p>Entry Key: <code>serviceA</code></p>
+    <ul>
+        <li>Field: <code>username</code>, Type: <code>str</code>, Value: <code>alice</code></li>
+        <li>Field: <code>password</code>, Type: <code>str</code>, Value: <code>secret123</code></li>
+        <li>Field: <code>token</code>, Type: <code>str</code>, Value: <code>abc-xyz-789</code></li>
+    </ul>
+    
+    <h3>Example: Database Credentials</h3>
+    <p>Entry Key: <code>myDatabase</code></p>
+    <ul>
+        <li>Field: <code>host</code>, Type: <code>str</code>, Value: <code>db.example.com</code></li>
+        <li>Field: <code>port</code>, Type: <code>num</code>, Value: <code>5432</code></li>
+        <li>Field: <code>username</code>, Type: <code>str</code>, Value: <code>admin</code></li>
+        <li>Field: <code>password</code>, Type: <code>str</code>, Value: <code>dbpass</code></li>
+        <li>Field: <code>ssl</code>, Type: <code>bool</code>, Value: <code>true</code></li>
+    </ul>
+</script>
+
+
+<!-- Runtime Node: vault -->
+<script type="text/javascript">
+    RED.nodes.registerType('vault', {
+        category: 'function',
+        color: '#3FADB5',
+        defaults: {
+            name: { value: '' },
+            vault: { value: '', type: 'vault-config', required: true },
+            defaultKey: { value: '' }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'font-awesome/fa-key',
+        label: function() {
+            return this.name || 'vault';
+        },
+        labelStyle: function() {
+            return this.name ? 'node_label_italic' : '';
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="vault">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-vault"><i class="fa fa-lock"></i> Vault</label>
+        <input type="text" id="node-input-vault">
+    </div>
+    <div class="form-row">
+        <label for="node-input-defaultKey"><i class="fa fa-key"></i> Default Key</label>
+        <input type="text" id="node-input-defaultKey" placeholder="Optional default key">
+    </div>
+    <div class="form-tips">
+        <strong>Tip:</strong> The node will use <code>msg.key</code> if provided, otherwise the default key.
+    </div>
+</script>
+
+<script type="text/html" data-help-name="vault">
+    <p>Retrieves credentials from a vault-config node by key.</p>
+    
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>key <span class="property-type">string</span></dt>
+        <dd>The key to look up in the vault. If not provided, the node's default key will be used.</dd>
+    </dl>
+    
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>credentials <span class="property-type">object</span></dt>
+        <dd>The credential object retrieved from the vault for the specified key.</dd>
+    </dl>
+    
+    <h3>Details</h3>
+    <p>This node reads a key from <code>msg.key</code> or uses the configured default key, looks it up in the selected vault-config node, and outputs the corresponding credential object on <code>msg.credentials</code>.</p>
+    
+    <p>The node will <strong>not</strong> send a message forward if:</p>
+    <ul>
+        <li>No key is provided (neither <code>msg.key</code> nor default key)</li>
+        <li>No vault-config node is configured</li>
+        <li>The specified key is not found in the vault</li>
+    </ul>
+    
+    <p>In error cases, an error is logged and the message is not forwarded.</p>
+    
+    <h3>Example Usage</h3>
+    <p>1. Create a vault-config node with entries like:</p>
+    <pre>{"serviceA": {"username": "alice", "password": "secret"}}</pre>
+    
+    <p>2. In a function node before the vault node, set:</p>
+    <pre>msg.key = "serviceA";
+return msg;</pre>
+    
+    <p>3. The vault node will output:</p>
+    <pre>msg.credentials = {"username": "alice", "password": "secret"}</pre>
+</script>
+
