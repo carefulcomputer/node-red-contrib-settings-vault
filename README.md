@@ -7,7 +7,6 @@ A Node-RED module for centralized configuration management with encrypted storag
 - [Overview](#overview)
 - [Why Use Config Vault](#why-use-config-vault)
 - [Key Features](#key-features)
-- [Key Benefits](#key-benefits)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Detailed Usage](#detailed-usage)
@@ -42,75 +41,21 @@ This module uses only Node-RED's native encryption functionality. No external li
 
 ## Why Use Config Vault
 
-### The Problem
-
-Without centralized configuration management:
-- Configuration values scattered across dozens of function nodes
-- Changing an API endpoint requires updating multiple places
-- Credentials hardcoded in flows (security risk)
-- No easy way to switch between development and production settings
-- Difficult to share flows without exposing sensitive data
-- Hard to maintain consistency across multiple flows
-
-### The Solution
-
-With Config Vault:
-- **Single Source of Truth**: All configuration in one place
-- **Easy Updates**: Change a value once, affects all flows using it
-- **Secure Storage**: Encrypted at rest using Node-RED's credential system
-- **Multiple Environments**: Separate configuration sets for dev, staging, production
-- **Environment-Agnostic Flows**: Develop with test settings, deploy with production settings - same flow logic
+- **Single Source of Truth**: All configuration in one place - change once, affects all flows using it
+- **Encrypted Storage**: Uses Node-RED's built-in credential encryption with no external dependencies
+- **Multiple Environments**: Create separate vaults for dev, staging, production - same flow logic, different settings
 - **Feature Flag Control**: Enable/disable/redirect entire flows without modifying flow logic
-- **Flexible Retrieval**: Access values via message properties, flow context, or global context
-- **Version Control Friendly**: Configuration separate from flow logic
-- **Zero-Downtime Updates**: Change settings and redeploy - no flow redesign needed
-- **Team Collaboration**: Share flows without exposing credentials
+- **Version Control Friendly**: Configuration separate from flow logic, safe to share flows without exposing credentials
+- **Environment-Agnostic Flows**: Develop with test settings, deploy with production settings by switching vault reference
 
 ## Key Features
 
 - **Centralized Storage**: Store all configuration values in one place, organized by logical groups
 - **Any Configuration Type**: Not just credentials - store API endpoints, database settings, feature flags, timeouts, or any other config data
-- **Multiple Configuration Sets**: Create separate vaults for different environments (development, staging, production)
-- **Encrypted Storage**: Automatic encryption using Node-RED's built-in credential system - no external dependencies
 - **One-Click Updates**: Change a configuration value once and it updates everywhere it's used
 - **Flexible Retrieval**: Access values via message properties, flow context, or global context
 - **Type-Safe Inputs**: Support for strings, numbers, booleans, JSON, dates, and masked passwords
-- **User-Friendly Interface**: Simple form-based UI with dropdowns and validation
 - **Logical Grouping**: Organize related settings together (e.g., "apiService", "database", "emailServer")
-- **Dynamic Configuration**: Dropdowns auto-populate from your vault, preventing typos
-- **No External Dependencies**: Uses only Node-RED's native functionality - no additional packages or servers
-
-## Key Benefits
-
-**Easy Testing**
-- Test with production-like settings without affecting real systems
-- Quickly switch between test and production data sources
-- Reproduce production issues with test data
-
-**Risk Mitigation**
-- Separate credentials for each environment reduces security risk
-- Accidental deployments to wrong environment won't use wrong credentials
-- No production API calls during development
-
-**Team Collaboration**
-- Developers use dev settings, QA uses staging settings
-- No need to share production credentials with entire team
-- Same flow logic works for everyone
-
-**Simple Deployment**
-- Export flow once, works in any environment
-- Just point to appropriate vault-config node
-- No code changes between environments
-
-**Configuration Tracking**
-- Each environment's settings clearly defined in one place
-- Easy to compare what differs between environments
-- Version control friendly (flows separate from credentials)
-
-**Environment-Agnostic Flows**
-- Develop with test settings, deploy with production settings
-- Same flow logic, different configuration
-- Quick environment switching for testing or demos
 
 ## Installation
 
@@ -286,54 +231,29 @@ Develop flows with test settings, deploy to production with different settings -
 
 ## Multiple Configuration Sets
 
-Maintain multiple vault-config nodes for different environments or use cases:
+You can create multiple vault-config nodes for different environments or use cases:
 
 - **Separate environments**: Development, staging, and production configurations
 - **Different clients**: Customer A settings vs Customer B settings
 - **Testing scenarios**: Production data vs test data vs mock data
 - **Regional configurations**: US servers vs EU servers
 
-### Example Setup
+### Changing Configuration Values
 
-Create separate vault-config nodes with the same structure but different values:
+To update configuration values (e.g., switching from test to production settings):
 
-```
-"Development Settings":
-  - apiService: { baseUrl: "http://localhost:3000", apiKey: "dev_key" }
-  - database: { host: "localhost" }
+1. Open the vault-config node you're using
+2. Edit the property values as needed
+3. Click "Update" to save
+4. Deploy your flows
 
-"Production Settings":
-  - apiService: { baseUrl: "https://api.example.com", apiKey: "prod_key" }
-  - database: { host: "prod-db.example.com" }
-```
-
-### Switching Environments
-
-To switch from one environment to another:
-1. Double-click the vault node
-2. Change "Vault" dropdown from "Development Settings" to "Production Settings"
-3. Deploy
-
-Same flow logic, different configuration - no code changes needed.
+The updated values will be used by all vault nodes referencing that configuration.
 
 ## Security
 
 ### Built-In Encryption
 
 All configuration values stored in the vault are encrypted using Node-RED's built-in credential encryption mechanism. This is the same proven encryption system Node-RED uses for username/password fields in core nodes.
-
-**No External Dependencies:**
-- Uses only Node-RED's native encryption functions
-- No external libraries or packages required
-- No separate vault servers or databases to maintain
-- Works out of the box with standard Node-RED installation
-
-**How It Works:**
-1. Values are encrypted with a secret key derived from `credentialSecret` in settings.js
-2. Encrypted values are stored in `flows_cred.json`
-3. Plain text values never appear in `flows.json` (safe for version control)
-4. Encryption uses AES-256-CTR with unique keys per Node-RED instance
-5. Decryption happens automatically when Node-RED loads flows
 
 ### Best Practices
 
