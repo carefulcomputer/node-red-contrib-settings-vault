@@ -150,21 +150,23 @@ After installation, restart Node-RED to load the new nodes.
 
 1. Drag the "vault" node into your flow
 2. Double-click to configure
-3. Select your vault config from the dropdown
-4. Click "Add Property" to define what to retrieve:
-   - Group: apiService
-   - Property: apiKey
-   - Save to: msg.apiKey
-5. Click "Done"
-6. Deploy
+3. Select your vault config from the dropdown (e.g., "Production Settings")
+4. Configure what to retrieve (you'll see one row ready to fill):
+   - **Group**: Select "apiService" from dropdown
+   - **Property**: Select "apiKey" from dropdown
+   - **Output**: Select "msg" from dropdown, then type "apiKey" in the text field
+5. Click "Done" to save
+6. Deploy your flow
 
 Now when messages pass through this vault node, `msg.apiKey` will automatically be populated with your API key.
+
+**Tip:** Click "Add Property" button to retrieve multiple values in one node.
 
 ## Detailed Usage
 
 ### Configuration Node
 
-The `vault-config` node is where you define and store all your credentials.
+The `vault-config` node is where you define and store all your configuration values.
 
 #### Structure
 
@@ -268,15 +270,16 @@ Result: global.dbHost = "db.example.com"
 
 #### Multiple Retrievals
 
-You can retrieve multiple properties in a single vault node. This is more efficient than using multiple vault nodes.
+You can retrieve multiple properties in a single vault node by clicking "Add Property" to add more rows. This is more efficient than using multiple vault nodes.
 
-Example configuration:
-```
-Row 1: apiService.username → msg.username
-Row 2: apiService.apiKey → msg.apiKey
-Row 3: apiService.baseUrl → flow.apiUrl
-Row 4: database.host → global.dbHost
-```
+Example: Configuring 4 rows to retrieve different values:
+
+| Row | Group | Property | Output Context | Output Name |
+|-----|-------|----------|----------------|-------------|
+| 1 | apiService | username | msg | username |
+| 2 | apiService | apiKey | msg | apiKey |
+| 3 | apiService | baseUrl | flow | apiUrl |
+| 4 | database | host | global | dbHost |
 
 Result when message passes through:
 ```javascript
@@ -295,7 +298,7 @@ Store API credentials and endpoints together, then use them in HTTP requests.
 [vault] → [http request]
 ```
 
-Vault: `apiService.baseUrl → msg.baseUrl`, `apiService.apiKey → msg.apiKey`
+Vault retrieves `baseUrl` and `apiKey` from `apiService` group and stores them in `msg.baseUrl` and `msg.apiKey`.
 
 ### Database Connections
 Retrieve database credentials and connection settings for database nodes.
@@ -304,7 +307,7 @@ Retrieve database credentials and connection settings for database nodes.
 [vault] → [mysql/postgres/mongodb]
 ```
 
-Vault: `database.host → msg.host`, `database.user → msg.user`, `database.password → msg.password`
+Vault retrieves `host`, `user`, and `password` from `database` group and stores them in `msg.host`, `msg.user`, and `msg.password`.
 
 ### Feature Flags
 Control flow behavior dynamically without modifying flow logic.
@@ -313,7 +316,7 @@ Control flow behavior dynamically without modifying flow logic.
 [vault] → [switch: check flag] → route based on configuration
 ```
 
-Vault: `features.maintenanceMode → flow.maintenance`, `features.useTestAPI → flow.testMode`
+Vault retrieves `maintenanceMode` and `useTestAPI` from `features` group and stores them in `flow.maintenance` and `flow.testMode`.
 
 **Examples:**
 - Enable/disable flows based on maintenance mode
