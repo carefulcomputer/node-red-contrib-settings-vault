@@ -6,7 +6,6 @@ A Node-RED module for centralized configuration management with encrypted storag
 
 - [Overview](#overview)
 - [Why Use Config Vault](#why-use-config-vault)
-- [Key Features](#key-features)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Detailed Usage](#detailed-usage)
@@ -18,7 +17,6 @@ A Node-RED module for centralized configuration management with encrypted storag
 - [Error Handling](#error-handling)
 - [Best Practices](#best-practices)
 - [Troubleshooting](#troubleshooting)
-- [License](#license)
 
 ## Overview
 
@@ -44,9 +42,6 @@ For example, a vault named "Production Settings" might contain:
 
 All values are encrypted using Node-RED's built-in credential encryption mechanism and stored in the `flows_cred.json` file. This ensures sensitive data never appears in plain text in your `flows.json` file.
 
-**No external dependencies:**
-This module uses only Node-RED's native encryption functionality. No external libraries, no additional setup, no separate vault servers to maintain.
-
 ## Why Use Config Vault
 
 - **Single Source of Truth**: All configuration in one place - change once, affects all flows using it
@@ -55,15 +50,6 @@ This module uses only Node-RED's native encryption functionality. No external li
 - **Feature Flag Control**: Enable/disable/redirect entire flows without modifying flow logic
 - **Version Control Friendly**: Configuration separate from flow logic, safe to share flows without exposing credentials
 - **Environment-Agnostic Flows**: Develop with test settings, deploy with production settings by switching vault reference
-
-## Key Features
-
-- **Centralized Storage**: Store all configuration values in one place, organized by logical groups
-- **Any Configuration Type**: Not just credentials - store API endpoints, database settings, feature flags, timeouts, or any other config data
-- **One-Click Updates**: Change a configuration value once and it updates everywhere it's used
-- **Flexible Retrieval**: Access values via message properties, flow context, or global context
-- **Type-Safe Inputs**: Support for strings, numbers, booleans, JSON, dates, and masked passwords
-- **Logical Grouping**: Organize related settings together (e.g., "apiService", "database", "emailServer")
 
 ## Installation
 
@@ -194,16 +180,6 @@ Store settings in flow or global context for access across multiple flows.
 Multiple flows read flow.apiUrl without duplicating vault nodes
 ```
 
-### Multi-Environment Deployment
-Develop flows with test settings, deploy to production with different settings - no flow changes needed.
-
-**Workflow:**
-1. Create "Dev Settings" vault with test endpoints and credentials
-2. Build and test flow using dev vault
-3. Create "Production Settings" vault with production endpoints and credentials
-4. Switch vault reference in node → Deploy
-5. Same flow logic, different configuration
-
 ## Multiple Configuration Sets
 
 You can create multiple vault-config nodes for different environments or use cases:
@@ -213,16 +189,19 @@ You can create multiple vault-config nodes for different environments or use cas
 - **Testing scenarios**: Production data vs test data vs mock data
 - **Regional configurations**: US servers vs EU servers
 
-### Changing Configuration Values
+**Example workflow for multi-environment deployment:**
+1. Create "Dev Settings" vault with test endpoints and credentials
+2. Build and test flow using dev vault
+3. Create "Production Settings" vault with production endpoints and credentials
+4. Switch vault reference in node → Deploy
+5. Same flow logic, different configuration
 
-To update configuration values (e.g., switching from test to production settings):
+To update values in an existing vault:
+1. Open the vault-config node
+2. Edit the property values
+3. Click "Update" and deploy
 
-1. Open the vault-config node you're using
-2. Edit the property values as needed
-3. Click "Update" to save
-4. Deploy your flows
-
-The updated values will be used by all vault nodes referencing that configuration.
+All vault nodes using that configuration will use the updated values.
 
 ## Security
 
@@ -257,14 +236,6 @@ All configuration values stored in the vault are encrypted using Node-RED's buil
 - All values stored in memory while Node-RED is running
 - Not designed for frequently-changing values (use context store for that)
 - Not designed for large amounts of data (use database for that)
-
-**Best Use Cases:**
-This module is ideal for:
-- Application configuration that changes infrequently
-- Environment-specific settings (dev vs staging vs production)
-- Credentials and API keys that need encryption
-- Settings shared across multiple flows
-- Configuration values that need centralized management
 
 ## Error Handling
 
@@ -337,15 +308,3 @@ Check the Node-RED debug panel for error details.
 - Always restart Node-RED after installing nodes
 - If using Docker, restart the container
 - Check npm install completed without errors
-
-## License
-
-MIT
-
-Copyright (c) 2024
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
