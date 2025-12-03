@@ -33,12 +33,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/node-red-contrib-config-vault.git"
+    "url": "git+https://github.com/carefulcomputer/node-red-contrib-config-vault.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/node-red-contrib-config-vault/issues"
+    "url": "https://github.com/carefulcomputer/node-red-contrib-config-vault/issues"
   },
-  "homepage": "https://github.com/yourusername/node-red-contrib-config-vault#readme",
+  "homepage": "https://github.com/carefulcomputer/node-red-contrib-config-vault#readme",
   "files": [
     "vault.js",
     "vault.html",
