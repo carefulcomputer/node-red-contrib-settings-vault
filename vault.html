@@ -730,14 +730,17 @@
                     propertySelect.replaceWith(newPropertySelect);
                     propertySelect.off();
                     
-                    // Update output field
-                    newPropertySelect.on('change', function() {
-                        const propValue = $(this).val();
-                        const outputInput = row.find('.property-output');
-                        if (propValue && !outputInput.data('userModified')) {
-                            outputInput.typedInput('value', propValue);
-                        }
-                    });
+                    // Update output field when new property is selected
+                    // IMPORTANT: Wait for TypedInput initialization before attaching handler
+                    setTimeout(function() {
+                        newPropertySelect.on('change', function() {
+                            const propValue = $(this).val();
+                            const outputInput = row.find('.property-output');
+                            if (propValue && !outputInput.data('userModified')) {
+                                outputInput.typedInput('value', propValue);
+                            }
+                        });
+                    }, 10); // Small delay to ensure TypedInput is ready
                 });
                 
                 // Output field with TypedInput (msg/flow/global)
@@ -774,15 +777,16 @@
                     outputInput.on('change', function() {
                         $(this).data('userModified', true);
                     });
+                    
+                    // Auto-fill output when property is selected
+                    // IMPORTANT: This must be inside setTimeout to ensure TypedInput is initialized
+                    propertySelect.on('change', function() {
+                        const propValue = $(this).val();
+                        if (propValue && !outputInput.data('userModified')) {
+                            outputInput.typedInput('value', propValue);
+                        }
+                    });
                 }, 0);
-                
-                // Auto-fill output when property is selected
-                propertySelect.on('change', function() {
-                    const propValue = $(this).val();
-                    if (propValue && !outputInput.data('userModified')) {
-                        outputInput.typedInput('value', propValue);
-                    }
-                });
                 
                 // Delete button
                 const deleteBtn = $('<button>', {
