@@ -663,8 +663,11 @@
             let propertyRowCount = 0;
             
             // Load available groups from selected vault
-            function loadAvailableGroups() {
-                const vaultId = $('#node-input-vault').val();
+            function loadAvailableGroups(vaultId) {
+                // Use provided vaultId, or try DOM, then fallback to node.vault
+                if (!vaultId) {
+                    vaultId = $('#node-input-vault').val() || node.vault;
+                }
                 if (!vaultId) return [];
                 
                 const vaultNode = RED.nodes.node(vaultId);
@@ -681,8 +684,11 @@
             }
             
             // Load available properties for a given group
-            function loadPropertiesForGroup(groupName) {
-                const vaultId = $('#node-input-vault').val();
+            function loadPropertiesForGroup(groupName, vaultId) {
+                // Use provided vaultId, or try DOM, then fallback to node.vault
+                if (!vaultId) {
+                    vaultId = $('#node-input-vault').val() || node.vault;
+                }
                 if (!vaultId || !groupName) return [];
                 
                 const vaultNode = RED.nodes.node(vaultId);
@@ -702,9 +708,9 @@
             }
             
             // Create group dropdown
-            function createGroupSelect(selectedGroup) {
+            function createGroupSelect(selectedGroup, vaultId) {
                 const select = $('<select>', { style: 'width: 100%;' });
-                const groups = loadAvailableGroups();
+                const groups = loadAvailableGroups(vaultId);
                 
                 select.append($('<option>', { value: '' }).text('-- select group --'));
                 groups.forEach(group => {
@@ -715,9 +721,9 @@
             }
             
             // Create property dropdown
-            function createPropertySelect(groupName, selectedProperty) {
+            function createPropertySelect(groupName, selectedProperty, vaultId) {
                 const select = $('<select>', { style: 'width: 100%;' });
-                const properties = loadPropertiesForGroup(groupName);
+                const properties = loadPropertiesForGroup(groupName, vaultId);
                 
                 select.append($('<option>', { value: '' }).text('-- select property --'));
                 properties.forEach(prop => {
@@ -728,8 +734,13 @@
             }
             
             // Add a property row
-            function addPropertyRow(group, property, output) {
+            function addPropertyRow(group, property, output, vaultId) {
                 const rowId = 'property-row-' + propertyRowCount++;
+                
+                // Use provided vaultId or fallback to node.vault
+                if (!vaultId) {
+                    vaultId = node.vault;
+                }
                 
                 const row = $('<div>', {
                     id: rowId,
@@ -738,17 +749,17 @@
                 });
                 
                 // Group dropdown
-                const groupSelect = createGroupSelect(group);
+                const groupSelect = createGroupSelect(group, vaultId);
                 row.append(groupSelect);
                 
                 // Property dropdown
-                const propertySelect = createPropertySelect(group, property);
+                const propertySelect = createPropertySelect(group, property, vaultId);
                 row.append(propertySelect);
                 
                 // Update property dropdown when group changes
                 groupSelect.on('change', function() {
                     const newGroup = $(this).val();
-                    const newPropertySelect = createPropertySelect(newGroup, '');
+                    const newPropertySelect = createPropertySelect(newGroup, '', vaultId);
                     propertySelect.replaceWith(newPropertySelect);
                     propertySelect.off();
                     
@@ -840,35 +851,35 @@
             
             // Add property button handler
             $('#add-property-btn').on('click', function() {
-                addPropertyRow('', '', '');
+                const currentVaultId = $('#node-input-vault').val() || node.vault;
+                addPropertyRow('', '', '', currentVaultId);
             });
             
             // Reload properties when vault changes
             $('#node-input-vault').on('change', function() {
+                const selectedVaultId = $(this).val();
                 // Clear and reload rows
                 $('#properties-list').empty();
                 propertyRowCount = 0;
                 
                 if (node.properties && node.properties.length > 0) {
                     node.properties.forEach(prop => {
-                        addPropertyRow(prop.group, prop.property, prop.output);
+                        addPropertyRow(prop.group, prop.property, prop.output, selectedVaultId);
                     });
                 } else {
-                    addPropertyRow('', '', '');
+                    addPropertyRow('', '', '', selectedVaultId);
                 }
             });
             
-            // Load existing properties after a short delay to ensure vault dropdown is initialized
-            setTimeout(function() {
-                if (node.properties && node.properties.length > 0) {
-                    node.properties.forEach(prop => {
-                        addPropertyRow(prop.group, prop.property, prop.output);
-                    });
-                } else {
-                    // Add one empty row by default
-                    addPropertyRow('', '', '');
-                }
-            }, 0);
+            // Load existing properties immediately using node.vault directly
+            if (node.properties && node.properties.length > 0) {
+                node.properties.forEach(prop => {
+                    addPropertyRow(prop.group, prop.property, prop.output, node.vault);
+                });
+            } else {
+                // Add one empty row by default
+                addPropertyRow('', '', '', node.vault);
+            }
         },
         oneditsave: function() {
             const properties = [];
