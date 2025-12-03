@@ -75,7 +75,7 @@ With Config Vault:
 - **One-Click Updates**: Change a configuration value once and it updates everywhere it's used
 - **Flexible Retrieval**: Access values via message properties, flow context, or global context
 - **Type-Safe Inputs**: Support for strings, numbers, booleans, JSON, dates, and masked passwords
-- **Visual Interface**: Field-based UI with dropdowns and validation - no JSON syntax errors
+- **User-Friendly Interface**: Simple form-based UI with dropdowns and validation
 - **Logical Grouping**: Organize related settings together (e.g., "apiService", "database", "emailServer")
 - **Dynamic Configuration**: Dropdowns auto-populate from your vault, preventing typos
 - **No External Dependencies**: Uses only Node-RED's native functionality - no additional packages or servers
@@ -213,7 +213,7 @@ Vault: "Production Settings"
 - **Collapse/Expand**: Groups are collapsed by default for easy navigation
 - **Clone**: Duplicate groups to create variations (e.g., dev, staging, prod)
 - **Validation**: Real-time validation with visual feedback
-- **No JSON Editing**: Structured inputs eliminate syntax errors
+- **Simple Form Inputs**: Structured fields with automatic type handling
 
 ### Runtime Node
 
