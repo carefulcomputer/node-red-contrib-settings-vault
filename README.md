@@ -225,8 +225,9 @@ Each row in the vault node configuration specifies:
 
 1. **Group** (dropdown): Which credential group to use
 2. **Property** (dropdown): Which specific value to retrieve
-3. **Context** (dropdown): Where to store it (msg/flow/global)
-4. **Property Name** (text): The property name in that context
+3. **Output** (context selector): Where to store the value
+   - Select context type: `msg`, `flow`, or `global`
+   - Enter property name (e.g., `apiKey`, `dbHost`)
 
 #### Context Options
 
@@ -391,20 +392,16 @@ All configuration values stored in the vault are encrypted using Node-RED's buil
 ### Best Practices
 
 **For Security:**
-1. **Credential Secret**: Set a strong `credentialSecret` in your Node-RED settings.js file
-2. **File Permissions**: Restrict access to `flows_cred.json` on the file system (chmod 600)
-3. **Backups**: Always backup both `flows.json` and `flows_cred.json` together
-4. **Access Control**: Enable Node-RED's admin authentication to prevent unauthorized access
-5. **Password Type**: Use the "password" type for sensitive values to mask them in the editor
-6. **Separate Environments**: Use different `credentialSecret` values for dev, staging, and production
+1. **Backups**: Always backup both `flows.json` and `flows_cred.json` together
+2. **Access Control**: Enable Node-RED's admin authentication to prevent unauthorized access
+3. **Password Type**: Use the "password" type for sensitive values to mask them in the editor
+4. **Separate Environments**: Use different `credentialSecret` values for dev, staging, and production
 
 **For Configuration Management:**
 1. **Organize by Group**: Organize related settings together (e.g., all API settings in one group)
 2. **Descriptive Names**: Use clear names for vaults (e.g., "Production Settings" not "Vault1")
 3. **Document Values**: Add comments in your flow documentation about which vault settings are used where
 4. **Consistent Naming**: Use consistent property names across environments (e.g., always use "baseUrl" not sometimes "url")
-5. **Version Control**: Keep `flows.json` in version control; exclude `flows_cred.json` (add to .gitignore)
-6. **Test Changes**: Test configuration changes in development before applying to production
 
 ### Limitations
 
