@@ -37,23 +37,32 @@
                 fieldCounters = {};
                 
                 // Populate entries from vault
+                let isFirstEntry = true;
                 for (const key in entries) {
                     if (entries.hasOwnProperty(key)) {
-                        addEntryRow(key, entries[key]);
+                        // First entry should be expanded for better zero state
+                        addEntryRow(key, entries[key], !isFirstEntry);
+                        isFirstEntry = false;
                     }
                 }
                 
-                // Add one empty row if no entries exist
+                // Add one empty row if no entries exist (expanded for zero state)
                 if (entryCount === 0) {
-                    addEntryRow('', {});
+                    addEntryRow('', {}, false);
                 }
             }
             
             // Add a new vault entry (key with multiple fields)
-            function addEntryRow(key, credentialsObj) {
+            // collapseByDefault: true to collapse, false to show expanded
+            function addEntryRow(key, credentialsObj, collapseByDefault) {
                 const entryId = 'vault-entry-' + entryCount;
                 entryCount++;
                 fieldCounters[entryId] = 0;
+                
+                // Default to collapsed unless explicitly set to false
+                if (collapseByDefault === undefined) {
+                    collapseByDefault = true;
+                }
                 
                 const entryContainer = $('<div>', {
                     id: entryId,
@@ -119,8 +128,8 @@
                         }
                     });
                     
-                    // Create new entry with cloned data
-                    addEntryRow(newKey, fields);
+                    // Create new entry with cloned data (collapsed by default)
+                    addEntryRow(newKey, fields, true);
                     RED.notify('Entry cloned as "' + newKey + '"', 'success');
                 });
                 
@@ -175,10 +184,18 @@
                     addFieldRow(entryId, fieldsList, '', 'str', '');
                 }
                 
-                // Collapse entry by default
-                entryContainer.addClass('collapsed');
-                fieldsList.hide();
-                addFieldBtn.hide();
+                // Collapse entry by default (if configured)
+                if (collapseByDefault) {
+                    entryContainer.addClass('collapsed');
+                    toggleBtn.html('<i class="fa fa-chevron-right"></i>');
+                    fieldsList.hide();
+                    addFieldBtn.hide();
+                } else {
+                    // Entry starts expanded
+                    toggleBtn.html('<i class="fa fa-chevron-down"></i>');
+                    fieldsList.show();
+                    addFieldBtn.show();
+                }
             }
             
             // Detect type from value
@@ -377,7 +394,8 @@
             
             // Add entry button handler
             $('#vault-add-entry').on('click', function() {
-                addEntryRow('', {});
+                // New entries should be expanded so user can immediately fill them
+                addEntryRow('', {}, false);
             });
             
             // Load existing entries
@@ -527,7 +545,11 @@
     <input type="hidden" id="node-config-input-store">
     
     <div class="form-tips">
-        <strong>Tip:</strong> Each domain groups related configuration values. Store credentials, API endpoints, feature flags, or any other settings. Use <strong>password</strong> type for sensitive values (masked in editor). All values encrypted using Node-RED's built-in encryption - no external dependencies.
+        <strong>What is this?</strong> This configuration node stores your settings in one secure, encrypted location. No external dependencies - uses Node-RED's built-in encryption.
+        <br><br>
+        <strong>How it works:</strong> Organize settings into <strong>Domains</strong> (logical groups) containing <strong>Properties</strong> (individual values).
+        <br><br>
+        <strong>Example:</strong> Domain "apiService" might contain properties: baseUrl ("https://api.example.com"), apiKey (your key), timeout (30000). Use <strong>password</strong> type for sensitive values to mask them in the editor.
     </div>
 </script>
 
