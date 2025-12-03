@@ -1,7 +1,7 @@
 {
-  "name": "node-red-contrib-secrets-vault",
-  "version": "1.2.0",
-  "description": "A credential vault node for Node-RED using built-in encrypted credential storage. Store multiple credentials securely and retrieve them by key at runtime.",
+  "name": "node-red-contrib-config-vault",
+  "version": "1.0.0",
+  "description": "Centralized configuration management for Node-RED. Store credentials, API endpoints, database settings, and any other configuration values in one encrypted location with no external dependencies. Perfect for managing multiple environments.",
   "main": "vault.js",
   "scripts": {
     "test": "echo \"No tests specified\" && exit 0"
@@ -9,13 +9,16 @@
   "keywords": [
     "node-red",
     "node-red-contrib",
+    "configuration",
+    "config",
+    "settings",
     "vault",
     "credentials",
     "secrets",
-    "security",
+    "environment",
     "encrypted",
-    "credential-store",
-    "password-manager"
+    "centralized",
+    "multi-environment"
   ],
   "node-red": {
     "version": ">=2.0.0",
@@ -30,12 +33,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/node-red-contrib-secrets-vault.git"
+    "url": "git+https://github.com/yourusername/node-red-contrib-config-vault.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/node-red-contrib-secrets-vault/issues"
+    "url": "https://github.com/yourusername/node-red-contrib-config-vault/issues"
   },
-  "homepage": "https://github.com/yourusername/node-red-contrib-secrets-vault#readme",
+  "homepage": "https://github.com/yourusername/node-red-contrib-config-vault#readme",
   "files": [
     "vault.js",
     "vault.html",

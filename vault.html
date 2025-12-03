@@ -61,41 +61,89 @@
                     style: 'margin-bottom: 15px; padding: 12px; border: 2px solid #ddd; border-radius: 6px; background-color: #f9f9f9;'
                 });
                 
-                // Entry header with key and delete button
+                // Entry header with key, collapse/expand, clone, and delete buttons
                 const headerRow = $('<div>', {
-                    style: 'margin-bottom: 10px; display: flex; align-items: center;'
+                    style: 'margin-bottom: 10px; display: flex; align-items: center; gap: 8px;'
+                });
+                
+                // Collapse/Expand toggle
+                const toggleBtn = $('<button>', {
+                    type: 'button',
+                    class: 'red-ui-button vault-toggle-btn',
+                    style: 'min-width: 30px; padding: 4px 8px;'
+                }).html('<i class="fa fa-chevron-right"></i>').on('click', function() {
+                    const isCollapsed = entryContainer.hasClass('collapsed');
+                    if (isCollapsed) {
+                        entryContainer.removeClass('collapsed');
+                        $(this).html('<i class="fa fa-chevron-down"></i>');
+                        entryContainer.find('.vault-fields-list, .add-field-btn').show();
+                    } else {
+                        entryContainer.addClass('collapsed');
+                        $(this).html('<i class="fa fa-chevron-right"></i>');
+                        entryContainer.find('.vault-fields-list, .add-field-btn').hide();
+                    }
                 });
                 
                 const keyLabel = $('<label>', {
-                    style: 'margin-right: 8px; font-weight: bold;'
-                }).text('Key:');
+                    style: 'margin: 0; font-weight: bold; min-width: 60px;'
+                }).text('Domain:');
                 
                 const keyInput = $('<input>', {
                     type: 'text',
                     class: 'vault-entry-key',
                     value: key,
-                    placeholder: 'e.g. serviceA',
-                    style: 'flex: 1; max-width: 300px; margin-right: 10px;'
+                    placeholder: 'e.g. apiService',
+                    style: 'flex: 1; max-width: 300px;'
+                });
+                
+                const cloneEntryBtn = $('<button>', {
+                    type: 'button',
+                    class: 'red-ui-button',
+                    title: 'Clone this domain'
+                }).html('<i class="fa fa-copy"></i> Clone').on('click', function() {
+                    // Clone the domain with new key
+                    const originalKey = entryContainer.find('.vault-entry-key').val();
+                    const newKey = originalKey + '_copy';
+                    
+                    // Collect all fields from current entry
+                    const fields = {};
+                    entryContainer.find('.vault-field-row').each(function() {
+                        const fieldRow = $(this);
+                        const fieldName = fieldRow.find('.vault-field-name').val();
+                        const fieldType = fieldRow.find('.vault-field-value').typedInput('type');
+                        const fieldValue = fieldRow.find('.vault-field-value').typedInput('value');
+                        
+                        if (fieldName) {
+                            // Store raw value
+                            fields[fieldName] = fieldValue;
+                        }
+                    });
+                    
+                    // Create new entry with cloned data
+                    addEntryRow(newKey, fields);
+                    RED.notify('Entry cloned as "' + newKey + '"', 'success');
                 });
                 
                 const deleteEntryBtn = $('<button>', {
                     type: 'button',
                     class: 'red-ui-button',
                     style: 'margin-left: auto;'
-                }).html('<i class="fa fa-trash"></i> Delete Entry').on('click', function() {
-                    entryContainer.remove();
+                }).html('<i class="fa fa-trash"></i> Delete Domain').on('click', function() {
+                    const entryKey = keyInput.val() || 'this entry';
+                    const fieldCount = entryContainer.find('.vault-field-row').length;
+                    
+                    if (confirm('Delete "' + entryKey + '" with ' + fieldCount + ' field(s)?')) {
+                        entryContainer.remove();
+                        RED.notify('Entry deleted', 'success');
+                    }
                 });
                 
-                headerRow.append(keyLabel).append(keyInput).append(deleteEntryBtn);
+                headerRow.append(toggleBtn).append(keyLabel).append(keyInput).append(cloneEntryBtn).append(deleteEntryBtn);
                 
                 // Fields list container
-                const fieldsLabel = $('<label>', {
-                    style: 'display: block; margin-top: 10px; margin-bottom: 5px; font-weight: bold;'
-                }).text('Credential Fields:');
-                
                 const fieldsList = $('<div>', {
                     class: 'vault-fields-list',
-                    style: 'margin-left: 20px;'
+                    style: 'margin-left: 20px; margin-top: 10px;'
                 });
                 
                 // Add field button
@@ -108,7 +156,7 @@
                 });
                 
                 // Assemble entry
-                entryContainer.append(headerRow).append(fieldsLabel).append(fieldsList).append(addFieldBtn);
+                entryContainer.append(headerRow).append(fieldsList).append(addFieldBtn);
                 $('#vault-entries-list').append(entryContainer);
                 
                 // Populate existing fields
@@ -126,6 +174,11 @@
                 if (fieldsList.children().length === 0) {
                     addFieldRow(entryId, fieldsList, '', 'str', '');
                 }
+                
+                // Collapse entry by default
+                entryContainer.addClass('collapsed');
+                fieldsList.hide();
+                addFieldBtn.hide();
             }
             
             // Detect type from value
@@ -175,23 +228,62 @@
                 
                 valueInputContainer.append(valueInput);
                 
+                // Validation indicator
+                const validationIcon = $('<span>', {
+                    class: 'validation-icon',
+                    style: 'min-width: 20px; text-align: center;'
+                }).html('');
+                
                 // Delete field button
                 const deleteFieldBtn = $('<button>', {
                     type: 'button',
                     class: 'red-ui-button red-ui-button-small',
                     style: 'min-width: 30px;'
                 }).html('<i class="fa fa-times"></i>').on('click', function() {
-                    fieldRow.remove();
+                    const fieldName = fieldNameInput.val() || 'this field';
+                    if (fieldNameInput.val() || valueInput.typedInput('value')) {
+                        if (confirm('Delete field "' + fieldName + '"?')) {
+                            fieldRow.remove();
+                        }
+                    } else {
+                        fieldRow.remove();
+                    }
                 });
                 
                 // Assemble field row
-                fieldRow.append(fieldNameLabel).append(fieldNameInput).append(valueInputContainer).append(deleteFieldBtn);
+                fieldRow.append(fieldNameLabel).append(fieldNameInput).append(valueInputContainer).append(validationIcon).append(deleteFieldBtn);
                 fieldsList.append(fieldRow);
                 
-                // Initialize TypedInput widget
+                // Initialize TypedInput widget with password type
                 valueInput.typedInput({
-                    types: ['str', 'num', 'bool', 'json', 'bin', 'date'],
-                    default: fieldType || 'str'
+                    types: [
+                        'str',
+                        {
+                            value: 'password',
+                            label: 'password',
+                            icon: 'fa fa-lock',
+                            showLabel: false
+                        },
+                        'num',
+                        'bool',
+                        'json',
+                        'bin',
+                        'date'
+                    ],
+                    default: fieldType || 'str',
+                    typeField: '#' + valueInput.attr('id') + '-type'
+                });
+                
+                // For password type, set input to password type
+                valueInput.on('change', function(event, type) {
+                    if (type === true) return; // Skip initial trigger
+                    const currentType = valueInput.typedInput('type');
+                    const inputElement = valueInput.siblings('input.red-ui-typedInput-input');
+                    if (currentType === 'password') {
+                        inputElement.attr('type', 'password');
+                    } else {
+                        inputElement.attr('type', 'text');
+                    }
                 });
                 
                 // Set initial value and type
@@ -203,6 +295,84 @@
                         valueInput.typedInput('value', String(fieldValue));
                     }
                 }
+                
+                // Add inline validation
+                function validateField() {
+                    const fieldName = fieldNameInput.val().trim();
+                    const currentType = valueInput.typedInput('type');
+                    const currentValue = valueInput.typedInput('value');
+                    
+                    let isValid = true;
+                    let errorMsg = '';
+                    
+                    // Skip validation for empty fields
+                    if (!fieldName && !currentValue) {
+                        validationIcon.html('');
+                        fieldRow.css('background-color', '');
+                        return;
+                    }
+                    
+                    // Validate field name
+                    if (!fieldName && currentValue) {
+                        isValid = false;
+                        errorMsg = 'Field name required';
+                    }
+                    
+                    // Validate value based on type
+                    if (fieldName && currentValue) {
+                        try {
+                            switch (currentType) {
+                                case 'num':
+                                    if (isNaN(Number(currentValue))) {
+                                        isValid = false;
+                                        errorMsg = 'Invalid number';
+                                    }
+                                    break;
+                                case 'bool':
+                                    if (currentValue !== 'true' && currentValue !== 'false' && 
+                                        currentValue !== true && currentValue !== false) {
+                                        isValid = false;
+                                        errorMsg = 'Must be true or false';
+                                    }
+                                    break;
+                                case 'json':
+                                    try {
+                                        JSON.parse(currentValue);
+                                    } catch (e) {
+                                        isValid = false;
+                                        errorMsg = 'Invalid JSON: ' + e.message;
+                                    }
+                                    break;
+                            }
+                        } catch (e) {
+                            isValid = false;
+                            errorMsg = 'Validation error';
+                        }
+                    }
+                    
+                    // Update UI
+                    if (isValid && fieldName && currentValue) {
+                        validationIcon.html('<i class="fa fa-check" style="color: green;" title="Valid"></i>');
+                        fieldRow.css('background-color', '');
+                    } else if (!isValid) {
+                        validationIcon.html('<i class="fa fa-exclamation-triangle" style="color: #d9534f;" title="' + errorMsg + '"></i>');
+                        fieldRow.css('background-color', '#fff3f3');
+                    } else {
+                        validationIcon.html('');
+                        fieldRow.css('background-color', '');
+                    }
+                }
+                
+                // Attach validation to field name input
+                fieldNameInput.on('input', validateField);
+                
+                // Attach validation to value changes
+                valueInput.on('change', function() {
+                    setTimeout(validateField, 100);
+                });
+                
+                // Run initial validation
+                setTimeout(validateField, 100);
             }
             
             // Add entry button handler
@@ -303,9 +473,10 @@
                                 // Store as base64 string for Buffer
                                 fieldValue = fieldValue;
                                 break;
+                            case 'password':
                             case 'str':
                             default:
-                                // Keep as string
+                                // Keep as string (password stored same as str, just masked in UI)
                                 break;
                         }
                         
@@ -348,7 +519,7 @@
     
     <div class="form-row">
         <button type="button" id="vault-add-entry" class="red-ui-button">
-            <i class="fa fa-plus"></i> Add Entry
+            <i class="fa fa-plus"></i> Add Domain
         </button>
     </div>
     
@@ -356,29 +527,27 @@
     <input type="hidden" id="node-config-input-store">
     
     <div class="form-tips">
-        <strong>Tip:</strong> Each entry has a unique key and multiple credential fields.<br/>
-        Each field has a name and typed value (string, number, boolean, JSON, buffer, or date).<br/>
-        Use <strong>Add Entry</strong> to create new vault entries, <strong>Add Field</strong> to add credential fields.
+        <strong>Tip:</strong> Each domain groups related configuration values. Store credentials, API endpoints, feature flags, or any other settings. Use <strong>password</strong> type for sensitive values (masked in editor). All values encrypted using Node-RED's built-in encryption - no external dependencies.
     </div>
 </script>
 
 <script type="text/html" data-help-name="vault-config">
-    <p>Configuration node that stores multiple credentials in a single encrypted vault with an intuitive field-based interface.</p>
+    <p>Configuration node for centralized storage of credentials, API endpoints, database settings, feature flags, and any other configuration values. All values are encrypted using Node-RED's built-in credential system with no external dependencies.</p>
     
     <h3>Properties</h3>
     <dl class="message-properties">
         <dt>Name <span class="property-type">string</span></dt>
-        <dd>A descriptive name for this vault instance.</dd>
+        <dd>A descriptive name for this vault instance (e.g., "Production Settings", "Test Configuration").</dd>
         
-        <dt>Vault Entries <span class="property-type">array</span></dt>
-        <dd>A list of credential entries. Each entry consists of:
+        <dt>Domains <span class="property-type">array</span></dt>
+        <dd>A list of configuration domains. Each domain groups related settings:
             <ul>
-                <li><strong>Key:</strong> A unique identifier (e.g., "serviceA", "database1")</li>
-                <li><strong>Credential Fields:</strong> Multiple fields, each with:
+                <li><strong>Domain:</strong> A logical grouping (e.g., "apiService", "database", "features")</li>
+                <li><strong>Properties:</strong> Multiple properties with:
                     <ul>
-                        <li><strong>Field Name:</strong> The credential property name (e.g., "username", "password", "port")</li>
-                        <li><strong>Type:</strong> Data type (str, num, bool, json, bin, date)</li>
-                        <li><strong>Value:</strong> The actual credential value</li>
+                        <li><strong>Property Name:</strong> Setting name (e.g., "baseUrl", "timeout", "enabled")</li>
+                        <li><strong>Type:</strong> Data type (str, password, num, bool, json, bin, date)</li>
+                        <li><strong>Value:</strong> The configuration value (all types encrypted at rest)</li>
                     </ul>
                 </li>
             </ul>
@@ -387,51 +556,63 @@
     
     <h3>Supported Types</h3>
     <ul>
-        <li><strong>str</strong> - String/text values (usernames, hostnames, tokens)</li>
-        <li><strong>num</strong> - Numeric values (ports, timeouts, IDs)</li>
-        <li><strong>bool</strong> - Boolean values (true/false flags)</li>
-        <li><strong>json</strong> - JSON objects or arrays (complex nested data)</li>
-        <li><strong>bin</strong> - Binary/Buffer data (certificates, binary tokens)</li>
-        <li><strong>date</strong> - Timestamps (expiration dates, creation times)</li>
+        <li><strong>str</strong> - Text values (URLs, hostnames, usernames, tokens)</li>
+        <li><strong>password</strong> - Masked input for passwords, API keys, secrets</li>
+        <li><strong>num</strong> - Numbers (ports, timeouts, thresholds, limits)</li>
+        <li><strong>bool</strong> - Boolean flags (enabled/disabled, feature flags)</li>
+        <li><strong>json</strong> - Complex data (nested objects, arrays, configurations)</li>
+        <li><strong>bin</strong> - Binary data (certificates, encoded keys)</li>
+        <li><strong>date</strong> - Timestamps (expiration dates, schedule times)</li>
     </ul>
+    <p><strong>Note:</strong> All values are encrypted at rest using Node-RED's built-in encryption. No external dependencies required. Use <strong>password</strong> type for masked editor input.</p>
     
     <h3>Details</h3>
-    <p>This node stores all credentials in a single encrypted field using Node-RED's built-in credential encryption mechanism. The vault content is stored in <code>flows_cred.json</code> and never appears in plain text in <code>flows.json</code>.</p>
+    <p>This node stores all configuration values in a single encrypted field using Node-RED's built-in credential encryption. The vault content is stored in <code>flows_cred.json</code> and never appears in plain text in <code>flows.json</code>.</p>
     
-    <p>The vault is <strong>read-only at runtime</strong>. To add, modify, or delete credentials, edit this configuration node and redeploy the flow.</p>
+    <p>The vault is <strong>read-only at runtime</strong>. To add, modify, or delete configuration values, edit this configuration node and redeploy the flow.</p>
+    
+    <p><strong>Use Cases:</strong></p>
+    <ul>
+        <li>Store credentials (usernames, passwords, API keys)</li>
+        <li>Manage API endpoints and base URLs</li>
+        <li>Configure database connection settings</li>
+        <li>Control feature flags and environment settings</li>
+        <li>Set operational thresholds and timeouts</li>
+        <li>Maintain separate configurations for dev/staging/production</li>
+    </ul>
     
     <h3>Usage</h3>
     <ol>
-        <li>Click <strong>"Add Entry"</strong> to create a new vault entry (with a unique key)</li>
-        <li>Within each entry, click <strong>"Add Field"</strong> to add credential fields</li>
-        <li>For each field:
+        <li>Click <strong>"Add Domain"</strong> to create a new vault domain</li>
+        <li>Enter a unique domain name (e.g., "apiService", "database")</li>
+        <li>Click <strong>"Add Field"</strong> to add properties within the domain</li>
+        <li>For each property, enter:
             <ul>
-                <li>Enter the field name (e.g., "username", "password")</li>
-                <li>Select the type from dropdown (str, num, bool, json, bin, date)</li>
-                <li>Enter the value</li>
+                <li>Property name (e.g., "username", "password", "port")</li>
+                <li>Type from dropdown (str, password, num, bool, json, bin, date)</li>
+                <li>Value (visible in editor, encrypted when saved)</li>
             </ul>
         </li>
-        <li>Click <strong>"×"</strong> to remove individual fields</li>
-        <li>Click <strong>"Delete Entry"</strong> to remove entire entries</li>
-        <li>Click <strong>"Done"</strong> to save (validates all values)</li>
+        <li>Use <strong>"×"</strong> to remove individual properties or <strong>"Delete Domain"</strong> for entire domains</li>
+        <li>Click <strong>"Update"</strong> to validate and save all changes</li>
     </ol>
     
-    <h3>Example: Web Service Credentials</h3>
-    <p>Entry Key: <code>serviceA</code></p>
+    <h3>Example: API Service Configuration</h3>
+    <p>Domain: <code>apiService</code></p>
     <ul>
-        <li>Field: <code>username</code>, Type: <code>str</code>, Value: <code>alice</code></li>
-        <li>Field: <code>password</code>, Type: <code>str</code>, Value: <code>secret123</code></li>
-        <li>Field: <code>token</code>, Type: <code>str</code>, Value: <code>abc-xyz-789</code></li>
+        <li>Property: <code>baseUrl</code>, Type: <code>str</code>, Value: <code>https://api.production.com</code></li>
+        <li>Property: <code>apiKey</code>, Type: <code>password</code>, Value: <code>sk_live_abc123</code></li>
+        <li>Property: <code>timeout</code>, Type: <code>num</code>, Value: <code>30000</code></li>
+        <li>Property: <code>retryEnabled</code>, Type: <code>bool</code>, Value: <code>true</code></li>
     </ul>
     
-    <h3>Example: Database Credentials</h3>
-    <p>Entry Key: <code>myDatabase</code></p>
+    <h3>Example: Feature Flags</h3>
+    <p>Domain: <code>features</code></p>
     <ul>
-        <li>Field: <code>host</code>, Type: <code>str</code>, Value: <code>db.example.com</code></li>
-        <li>Field: <code>port</code>, Type: <code>num</code>, Value: <code>5432</code></li>
-        <li>Field: <code>username</code>, Type: <code>str</code>, Value: <code>admin</code></li>
-        <li>Field: <code>password</code>, Type: <code>str</code>, Value: <code>dbpass</code></li>
-        <li>Field: <code>ssl</code>, Type: <code>bool</code>, Value: <code>true</code></li>
+        <li>Property: <code>maintenanceMode</code>, Type: <code>bool</code>, Value: <code>false</code></li>
+        <li>Property: <code>debugLogging</code>, Type: <code>bool</code>, Value: <code>false</code></li>
+        <li>Property: <code>rateLimitPerMinute</code>, Type: <code>num</code>, Value: <code>100</code></li>
+        <li>Property: <code>allowedRegions</code>, Type: <code>json</code>, Value: <code>["us-east","eu-west"]</code></li>
     </ul>
 </script>
 
@@ -444,7 +625,7 @@
         defaults: {
             name: { value: '' },
             vault: { value: '', type: 'vault-config', required: true },
-            defaultKey: { value: '' }
+            properties: { value: [] }
         },
         inputs: 1,
         outputs: 1,
@@ -454,6 +635,237 @@
         },
         labelStyle: function() {
             return this.name ? 'node_label_italic' : '';
+        },
+        oneditprepare: function() {
+            const node = this;
+            let propertyRowCount = 0;
+            
+            // Load available domains from selected vault
+            function loadAvailableDomains() {
+                const vaultId = $('#node-input-vault').val();
+                if (!vaultId) return [];
+                
+                const vaultNode = RED.nodes.node(vaultId);
+                if (!vaultNode || !vaultNode.credentials || !vaultNode.credentials.store) {
+                    return [];
+                }
+                
+                try {
+                    const vault = JSON.parse(vaultNode.credentials.store);
+                    return Object.keys(vault);
+                } catch (err) {
+                    return [];
+                }
+            }
+            
+            // Load available properties for a given domain
+            function loadPropertiesForDomain(domainName) {
+                const vaultId = $('#node-input-vault').val();
+                if (!vaultId || !domainName) return [];
+                
+                const vaultNode = RED.nodes.node(vaultId);
+                if (!vaultNode || !vaultNode.credentials || !vaultNode.credentials.store) {
+                    return [];
+                }
+                
+                try {
+                    const vault = JSON.parse(vaultNode.credentials.store);
+                    if (vault[domainName] && typeof vault[domainName] === 'object') {
+                        return Object.keys(vault[domainName]);
+                    }
+                    return [];
+                } catch (err) {
+                    return [];
+                }
+            }
+            
+            // Create domain dropdown
+            function createDomainSelect(selectedDomain) {
+                const select = $('<select>', { style: 'width: 100%;' });
+                const domains = loadAvailableDomains();
+                
+                select.append($('<option>', { value: '' }).text('-- select domain --'));
+                domains.forEach(domain => {
+                    select.append($('<option>', { value: domain, selected: domain === selectedDomain }).text(domain));
+                });
+                
+                return select;
+            }
+            
+            // Create property dropdown
+            function createPropertySelect(domainName, selectedProperty) {
+                const select = $('<select>', { style: 'width: 100%;' });
+                const properties = loadPropertiesForDomain(domainName);
+                
+                select.append($('<option>', { value: '' }).text('-- select property --'));
+                properties.forEach(prop => {
+                    select.append($('<option>', { value: prop, selected: prop === selectedProperty }).text(prop));
+                });
+                
+                return select;
+            }
+            
+            // Add a property row
+            function addPropertyRow(domain, property, output) {
+                const rowId = 'property-row-' + propertyRowCount++;
+                
+                const row = $('<div>', {
+                    id: rowId,
+                    class: 'property-row',
+                    style: 'display: grid; grid-template-columns: 2fr 2fr 2fr 50px; gap: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #fff; margin-bottom: 8px; align-items: center;'
+                });
+                
+                // Domain dropdown
+                const domainSelect = createDomainSelect(domain);
+                row.append(domainSelect);
+                
+                // Property dropdown
+                const propertySelect = createPropertySelect(domain, property);
+                row.append(propertySelect);
+                
+                // Update property dropdown when domain changes
+                domainSelect.on('change', function() {
+                    const newDomain = $(this).val();
+                    const newPropertySelect = createPropertySelect(newDomain, '');
+                    propertySelect.replaceWith(newPropertySelect);
+                    propertySelect.off();
+                    
+                    // Update output field
+                    newPropertySelect.on('change', function() {
+                        const propValue = $(this).val();
+                        const outputInput = row.find('.property-output');
+                        if (propValue && !outputInput.data('userModified')) {
+                            outputInput.typedInput('value', propValue);
+                        }
+                    });
+                });
+                
+                // Output field with TypedInput (msg/flow/global)
+                const outputInput = $('<input>', {
+                    type: 'text',
+                    class: 'property-output',
+                    style: 'width: 100%;'
+                });
+                
+                row.append(outputInput);
+                
+                // Initialize TypedInput after adding to DOM
+                setTimeout(function() {
+                    outputInput.typedInput({
+                        types: ['msg', 'flow', 'global'],
+                        default: 'msg'
+                    });
+                    
+                    // Set initial value
+                    if (output) {
+                        // Parse output like "msg.username" or "flow.apiKey"
+                        const parts = output.split('.');
+                        if (parts.length >= 2 && (parts[0] === 'msg' || parts[0] === 'flow' || parts[0] === 'global')) {
+                            outputInput.typedInput('type', parts[0]);
+                            outputInput.typedInput('value', parts.slice(1).join('.'));
+                        } else {
+                            outputInput.typedInput('value', property || '');
+                        }
+                    } else {
+                        outputInput.typedInput('value', property || '');
+                    }
+                    
+                    // Track manual modifications
+                    outputInput.on('change', function() {
+                        $(this).data('userModified', true);
+                    });
+                }, 0);
+                
+                // Auto-fill output when property is selected
+                propertySelect.on('change', function() {
+                    const propValue = $(this).val();
+                    if (propValue && !outputInput.data('userModified')) {
+                        outputInput.typedInput('value', propValue);
+                    }
+                });
+                
+                // Delete button
+                const deleteBtn = $('<button>', {
+                    type: 'button',
+                    class: 'red-ui-button property-delete-btn',
+                    style: 'padding: 6px 10px; font-size: 12px;'
+                }).html('<i class="fa fa-times"></i>').on('click', function() {
+                    row.remove();
+                    updateDeleteButtons();
+                });
+                
+                row.append(deleteBtn);
+                
+                $('#properties-list').append(row);
+                updateDeleteButtons();
+            }
+            
+            // Update delete button states
+            function updateDeleteButtons() {
+                const rows = $('.property-row');
+                $('.property-delete-btn').each(function(index) {
+                    if (rows.length === 1) {
+                        $(this).prop('disabled', true);
+                    } else {
+                        $(this).prop('disabled', false);
+                    }
+                });
+            }
+            
+            // Add property button handler
+            $('#add-property-btn').on('click', function() {
+                addPropertyRow('', '', '');
+            });
+            
+            // Reload properties when vault changes
+            $('#node-input-vault').on('change', function() {
+                // Clear and reload rows
+                $('#properties-list').empty();
+                propertyRowCount = 0;
+                
+                if (node.properties && node.properties.length > 0) {
+                    node.properties.forEach(prop => {
+                        addPropertyRow(prop.domain, prop.property, prop.output);
+                    });
+                } else {
+                    addPropertyRow('', '', '');
+                }
+            });
+            
+            // Load existing properties
+            if (node.properties && node.properties.length > 0) {
+                node.properties.forEach(prop => {
+                    addPropertyRow(prop.domain, prop.property, prop.output);
+                });
+            } else {
+                // Add one empty row by default
+                addPropertyRow('', '', '');
+            }
+        },
+        oneditsave: function() {
+            const properties = [];
+            
+            $('#properties-list .property-row').each(function() {
+                const row = $(this);
+                const domain = row.find('select').eq(0).val();
+                const property = row.find('select').eq(1).val();
+                const outputInput = row.find('.property-output');
+                
+                if (domain && property && outputInput.length > 0) {
+                    const outputType = outputInput.typedInput('type');
+                    const outputValue = outputInput.typedInput('value');
+                    
+                    if (outputValue) {
+                        properties.push({
+                            domain: domain,
+                            property: property,
+                            output: outputType + '.' + outputValue
+                        });
+                    }
+                }
+            });
+            
+            this.properties = properties;
         }
     });
 </script>
@@ -468,50 +880,111 @@
         <input type="text" id="node-input-vault">
     </div>
     <div class="form-row">
-        <label for="node-input-defaultKey"><i class="fa fa-key"></i> Default Key</label>
-        <input type="text" id="node-input-defaultKey" placeholder="Optional default key">
+        <label style="width: 100%;"><i class="fa fa-list"></i> Properties to Retrieve</label>
+        <div style="display: grid; grid-template-columns: 2fr 2fr 2fr 50px; gap: 10px; padding: 10px 12px; background: #e8e8e8; font-weight: 600; color: #555; border-radius: 4px 4px 0 0; margin-bottom: 5px;">
+            <div>Domain</div>
+            <div>Property</div>
+            <div>Save to</div>
+            <div></div>
+        </div>
+        <div id="properties-list"></div>
+        <button type="button" id="add-property-btn" class="red-ui-button" style="margin-top: 10px;">
+            <i class="fa fa-plus"></i> Add Property
+        </button>
     </div>
     <div class="form-tips">
-        <strong>Tip:</strong> The node will use <code>msg.key</code> if provided, otherwise the default key.
+        <strong>How it works:</strong> Each row retrieves one configuration value from a vault domain and saves it to the specified context (msg, flow, or global). Use for credentials, API endpoints, feature flags, or any settings. Perfect for environment-agnostic flows - develop with test settings, deploy with production settings without changing your flow logic.
     </div>
 </script>
 
 <script type="text/html" data-help-name="vault">
-    <p>Retrieves credentials from a vault-config node by key.</p>
+    <p>Retrieves configuration values from vault domains and saves them to message properties, flow context, or global context. Perfect for centralizing credentials, API endpoints, feature flags, and any other configuration data your flows need.</p>
+    
+    <h3>Configuration</h3>
+    <p>Configure one or more property retrievals. Each row specifies:</p>
+    <ul>
+        <li><strong>Domain:</strong> The vault domain (logical grouping of related settings)</li>
+        <li><strong>Property:</strong> The specific property to retrieve from that domain</li>
+        <li><strong>Save to:</strong> Where to save the value - supports:
+            <ul>
+                <li><code>msg</code> - Message property for per-message data (e.g., <code>msg.apiKey</code>)</li>
+                <li><code>flow</code> - Flow context for settings shared across nodes (e.g., <code>flow.baseUrl</code>)</li>
+                <li><code>global</code> - Global context for settings shared across flows (e.g., <code>global.dbHost</code>)</li>
+            </ul>
+        </li>
+    </ul>
     
     <h3>Inputs</h3>
     <dl class="message-properties">
-        <dt>key <span class="property-type">string</span></dt>
-        <dd>The key to look up in the vault. If not provided, the node's default key will be used.</dd>
+        <dt>any</dt>
+        <dd>The node processes any incoming message and adds the configured properties based on your settings.</dd>
     </dl>
     
     <h3>Outputs</h3>
+    <p>The node adds the retrieved property values to the configured contexts.</p>
     <dl class="message-properties">
-        <dt>credentials <span class="property-type">object</span></dt>
-        <dd>The credential object retrieved from the vault for the specified key.</dd>
+        <dt>msg.{property} <span class="property-type">any</span></dt>
+        <dd>Properties configured for <code>msg</code> context are added to the message.</dd>
+        <dt>flow.{property} <span class="property-type">any</span></dt>
+        <dd>Properties configured for <code>flow</code> context are stored in flow context.</dd>
+        <dt>global.{property} <span class="property-type">any</span></dt>
+        <dd>Properties configured for <code>global</code> context are stored in global context.</dd>
     </dl>
     
     <h3>Details</h3>
-    <p>This node reads a key from <code>msg.key</code> or uses the configured default key, looks it up in the selected vault-config node, and outputs the corresponding credential object on <code>msg.credentials</code>.</p>
+    <p>This node retrieves individual configuration values from vault domains and sets them directly to your chosen context. You can retrieve multiple properties from the same or different domains in a single node.</p>
     
-    <p>The node will <strong>not</strong> send a message forward if:</p>
+    <p><strong>Key Benefits:</strong></p>
     <ul>
-        <li>No key is provided (neither <code>msg.key</code> nor default key)</li>
-        <li>No vault-config node is configured</li>
-        <li>The specified key is not found in the vault</li>
+        <li>No function node needed - configuration retrieved automatically</li>
+        <li>Environment-agnostic flows - develop with test settings, deploy with production settings</li>
+        <li>Feature flag control - enable/disable flows dynamically</li>
+        <li>Single point of configuration change</li>
     </ul>
     
-    <p>In error cases, an error is logged and the message is not forwarded.</p>
+    <p>The node will generate an error if:</p>
+    <ul>
+        <li>No vault-config node is configured</li>
+        <li>A specified domain is not found in the vault</li>
+        <li>A specified property is not found in the domain</li>
+    </ul>
     
-    <h3>Example Usage</h3>
-    <p>1. Create a vault-config node with entries like:</p>
-    <pre>{"serviceA": {"username": "alice", "password": "secret"}}</pre>
+    <h3>Example 1: API Integration</h3>
+    <p><strong>Vault Configuration:</strong></p>
+    <pre>{
+  "apiService": {
+    "baseUrl": "https://api.production.com",
+    "apiKey": "sk_live_abc123",
+    "timeout": 30000
+  }
+}</pre>
     
-    <p>2. In a function node before the vault node, set:</p>
-    <pre>msg.key = "serviceA";
-return msg;</pre>
+    <p><strong>Node Configuration:</strong></p>
+    <ul>
+        <li>Domain: apiService, Property: baseUrl, Save to: msg.baseUrl</li>
+        <li>Domain: apiService, Property: apiKey, Save to: msg.apiKey</li>
+        <li>Domain: apiService, Property: timeout, Save to: msg.timeout</li>
+    </ul>
     
-    <p>3. The vault node will output:</p>
-    <pre>msg.credentials = {"username": "alice", "password": "secret"}</pre>
+    <p><strong>Result:</strong> All API settings retrieved automatically - no hardcoded values in your flow.</p>
+    
+    <h3>Example 2: Feature Flags</h3>
+    <p><strong>Vault Configuration:</strong></p>
+    <pre>{
+  "features": {
+    "maintenanceMode": false,
+    "useTestAPI": false
+  }
+}</pre>
+    
+    <p><strong>Node Configuration:</strong></p>
+    <ul>
+        <li>Domain: features, Property: maintenanceMode, Save to: flow.maintenanceMode</li>
+    </ul>
+    
+    <p><strong>Usage:</strong> Use a Switch node after the vault to check <code>flow.maintenanceMode</code> and enable/disable your flows dynamically.</p>
+    
+    <h3>Example 3: Environment Switching</h3>
+    <p>Create separate vault-config nodes ("Test Settings" and "Production Settings") with the same domain/property structure but different values. Switch between environments by changing which vault-config this node references - no flow changes needed.</p>
 </script>
 
