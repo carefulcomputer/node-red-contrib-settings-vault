@@ -12,13 +12,13 @@ module.exports = function(RED) {
      * Configuration Node: vault-config
      * 
      * Purpose:
-     *   Stores multiple credential sets organized by domains in a single encrypted field.
+     *   Stores multiple credential sets organized by groups in a single encrypted field.
      *   All credentials are stored as JSON in the Node-RED credential store and
      *   encrypted using Node-RED's built-in encryption mechanism.
      * 
      * Data Structure:
      *   {
-     *     "domainName": {
+     *     "groupName": {
      *       "property1": "value1",
      *       "property2": "value2"
      *     }
@@ -54,10 +54,10 @@ module.exports = function(RED) {
         }
         
         /**
-         * Get credentials for a specific domain
+         * Get credentials for a specific group
          * 
-         * @param {string} key - The domain name (e.g., "apiService")
-         * @returns {object|null} - The credential object for that domain, or null if not found
+         * @param {string} key - The group name (e.g., "apiService")
+         * @returns {object|null} - The credential object for that group, or null if not found
          * 
          * This method is called by vault runtime nodes to retrieve credentials.
          * It performs validation to ensure the key exists and contains a valid object.
@@ -68,7 +68,7 @@ module.exports = function(RED) {
                 return null;
             }
             
-            // Look up the domain in the store
+            // Look up the group in the store
             const entry = this.storeObject[key];
             
             // Check if entry exists
@@ -76,12 +76,12 @@ module.exports = function(RED) {
                 return null;
             }
             
-            // Ensure entry is an object (domains should contain properties)
+            // Ensure entry is an object (groups should contain properties)
             if (typeof entry !== 'object') {
                 return null;
             }
             
-            // Return the credential object for this domain
+            // Return the credential object for this group
             return entry;
         };
     }
@@ -99,7 +99,7 @@ module.exports = function(RED) {
      * Runtime Node: vault
      * 
      * Purpose:
-     *   Retrieves specific property values from vault domains and sets them to
+     *   Retrieves specific property values from vault groups and sets them to
      *   message properties, flow context, or global context based on configuration.
      * 
      * Configuration:
@@ -108,15 +108,15 @@ module.exports = function(RED) {
      * 
      * Property Configuration Structure:
      *   {
-     *     domain: "apiService",           // Which domain to retrieve from
-     *     property: "apiKey",             // Which property within that domain
+     *     group: "apiService",            // Which group to retrieve from
+     *     property: "apiKey",             // Which property within that group
      *     output: "msg.apiKey"            // Where to store it (msg/flow/global.propertyName)
      *   }
      * 
      * Flow:
      *   1. Validate configuration (vault ref, properties array)
      *   2. For each configured property:
-     *      a. Retrieve domain credentials from vault
+     *      a. Retrieve group credentials from vault
      *      b. Extract specific property value
      *      c. Set value to configured context (msg/flow/global)
      *   3. Forward message with all values set
@@ -135,7 +135,7 @@ module.exports = function(RED) {
         this.vaultConfig = RED.nodes.getNode(config.vault);
         
         // Array of property retrievals configured in the node
-        // Each element: {domain, property, output}
+        // Each element: {group, property, output}
         this.properties = config.properties || [];
         
         // Handle incoming messages
@@ -166,26 +166,26 @@ module.exports = function(RED) {
                     const prop = node.properties[i];
                     
                     // Validate: Ensure property configuration is complete
-                    if (!prop.domain || !prop.property || !prop.output) {
+                    if (!prop.group || !prop.property || !prop.output) {
                         const err = new Error('Invalid property configuration at index ' + i);
                         node.error(err.message, msg);
                         done(err);
                         return;
                     }
                     
-                    // Step 1: Get all credentials for the specified domain
-                    const domainCredentials = node.vaultConfig.getCredentialsForKey(prop.domain);
+                    // Step 1: Get all credentials for the specified group
+                    const groupCredentials = node.vaultConfig.getCredentialsForKey(prop.group);
                     
-                    if (domainCredentials === null) {
-                        const err = new Error('Domain not found: ' + prop.domain);
+                    if (groupCredentials === null) {
+                        const err = new Error('Group not found: ' + prop.group);
                         node.error(err.message, msg);
                         done(err);
                         return;
                     }
                     
-                    // Step 2: Check if the specific property exists in this domain
-                    if (!domainCredentials.hasOwnProperty(prop.property)) {
-                        const err = new Error('Property "' + prop.property + '" not found in domain: ' + prop.domain);
+                    // Step 2: Check if the specific property exists in this group
+                    if (!groupCredentials.hasOwnProperty(prop.property)) {
+                        const err = new Error('Property "' + prop.property + '" not found in group: ' + prop.group);
                         node.error(err.message, msg);
                         done(err);
                         return;
@@ -193,7 +193,7 @@ module.exports = function(RED) {
                     
                     // Step 3: Set the property value to the configured context
                     try {
-                        const value = domainCredentials[prop.property];
+                        const value = groupCredentials[prop.property];
                         
                         // Parse output format: "msg.username", "flow.apiKey", "global.dbHost"
                         const outputParts = prop.output.split('.');

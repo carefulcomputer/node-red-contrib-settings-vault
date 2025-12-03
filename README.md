@@ -16,7 +16,6 @@ A Node-RED module for centralized configuration management with encrypted storag
 - [Multiple Configuration Sets](#multiple-configuration-sets)
 - [Security](#security)
 - [Error Handling](#error-handling)
-- [Migration Guide](#migration-guide)
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
 
@@ -67,7 +66,7 @@ With Config Vault:
 
 ## Key Features
 
-- **Centralized Storage**: Store all configuration values in one place, organized by logical domains
+- **Centralized Storage**: Store all configuration values in one place, organized by logical groups
 - **Any Configuration Type**: Not just credentials - store API endpoints, database settings, feature flags, timeouts, or any other config data
 - **Multiple Configuration Sets**: Create separate vaults for different environments (development, staging, production)
 - **Encrypted Storage**: Automatic encryption using Node-RED's built-in credential system - no external dependencies
@@ -75,7 +74,7 @@ With Config Vault:
 - **Flexible Retrieval**: Access values via message properties, flow context, or global context
 - **Type-Safe Inputs**: Support for strings, numbers, booleans, JSON, buffers, dates, and masked passwords
 - **Visual Interface**: Field-based UI with dropdowns and validation - no JSON syntax errors
-- **Domain Organization**: Group related settings together (e.g., "apiService", "database", "emailServer")
+- **Logical Grouping**: Organize related settings together (e.g., "apiService", "database", "emailServer")
 - **Dynamic Configuration**: Dropdowns auto-populate from your vault, preventing typos
 - **No External Dependencies**: Uses only Node-RED's native functionality - no additional packages or servers
 
@@ -105,8 +104,8 @@ After installation, restart Node-RED to load the new nodes.
 2. Go to menu (three horizontal lines) → Configuration nodes
 3. Click "Add" and select "vault-config"
 4. Give it a descriptive name (e.g., "Production Settings")
-5. Click "Add Domain" and name it (e.g., "apiService")
-6. Add properties for that domain:
+5. Click "Add Group" and name it (e.g., "apiService")
+6. Add properties for that group:
    - baseUrl (type: str): "https://api.production.com"
    - apiKey (type: password): "your-api-key"
    - timeout (type: num): 30000
@@ -119,7 +118,7 @@ After installation, restart Node-RED to load the new nodes.
 2. Double-click to configure
 3. Select your vault config from the dropdown
 4. Click "Add Property" to define what to retrieve:
-   - Domain: apiService
+   - Group: apiService
    - Property: apiKey
    - Save to: msg.apiKey
 5. Click "Done"
@@ -135,29 +134,29 @@ The `vault-config` node is where you define and store all your credentials.
 
 #### Structure
 
-Configuration values are organized hierarchically by domains. Each domain groups related settings together:
+Configuration values are organized hierarchically by groups. Each group contains related settings:
 
 ```
 Vault: "Production Settings"
-├── Domain: apiService
+├── Group: apiService
 │   ├── baseUrl (str): "https://api.production.com"
 │   ├── apiKey (password): "sk_live_abc123"
 │   ├── timeout (num): 30000
 │   ├── retryEnabled (bool): true
 │   └── maxRetries (num): 3
-├── Domain: database
+├── Group: database
 │   ├── host (str): "db.production.com"
 │   ├── port (num): 5432
 │   ├── username (str): "app_user"
 │   ├── password (password): "dbpass123"
 │   ├── ssl (bool): true
 │   └── poolSize (num): 10
-├── Domain: emailServer
+├── Group: emailServer
 │   ├── smtp (str): "smtp.example.com"
 │   ├── port (num): 587
 │   ├── secure (bool): true
 │   └── credentials (json): {"user":"mail@example.com","pass":"mailpass"}
-└── Domain: features
+└── Group: features
     ├── debugMode (bool): false
     ├── rateLimitPerMinute (num): 100
     ├── maintenanceMode (bool): false
@@ -178,10 +177,10 @@ Vault: "Production Settings"
 
 #### UI Features
 
-- **Collapse/Expand**: Domains are collapsed by default for easy navigation
-- **Clone**: Duplicate domains to create variations (e.g., dev, staging, prod)
+- **Collapse/Expand**: Groups are collapsed by default for easy navigation
+- **Clone**: Duplicate groups to create variations (e.g., dev, staging, prod)
 - **Validation**: Real-time validation with visual feedback
-- **Confirmation Dialogs**: Prevents accidental deletion of domains or properties
+- **Confirmation Dialogs**: Prevents accidental deletion of groups or properties
 - **No JSON Editing**: Structured inputs eliminate syntax errors
 
 ### Runtime Node
@@ -192,7 +191,7 @@ The `vault` node retrieves specific property values from your vault and makes th
 
 Each row in the vault node configuration specifies:
 
-1. **Domain** (dropdown): Which credential group to use
+1. **Group** (dropdown): Which credential group to use
 2. **Property** (dropdown): Which specific value to retrieve
 3. **Context** (dropdown): Where to store it (msg/flow/global)
 4. **Property Name** (text): The property name in that context
@@ -205,7 +204,7 @@ Each row in the vault node configuration specifies:
 - Use for: Per-request data, HTTP headers, temporary values
 
 ```javascript
-Domain: apiService, Property: apiKey
+Group: apiService, Property: apiKey
 Context: msg, Name: apiKey
 Result: msg.apiKey = "sk_live_abc123"
 ```
@@ -217,7 +216,7 @@ Result: msg.apiKey = "sk_live_abc123"
 - Use for: Shared configuration, cached values, flow-wide settings
 
 ```javascript
-Domain: apiService, Property: baseUrl
+Group: apiService, Property: baseUrl
 Context: flow, Name: apiUrl
 Result: flow.apiUrl = "https://api.example.com"
 ```
@@ -229,7 +228,7 @@ Result: flow.apiUrl = "https://api.example.com"
 - Use for: System-wide configuration, shared database connections
 
 ```javascript
-Domain: database, Property: host
+Group: database, Property: host
 Context: global, Name: dbHost
 Result: global.dbHost = "db.example.com"
 ```
@@ -523,21 +522,21 @@ Create separate vault-config nodes for each configuration set:
 
 1. **Development Vault**
    - Name: "Development Settings"
-   - Domains:
+   - Groups:
      - apiService: { baseUrl: "http://localhost:3000", apiKey: "dev_key_123" }
      - database: { host: "localhost", port: 5432 }
      - features: { debugMode: true, rateLimitPerMinute: 1000 }
 
 2. **Staging Vault**
    - Name: "Staging Settings"
-   - Domains:
+   - Groups:
      - apiService: { baseUrl: "https://staging-api.example.com", apiKey: "stg_key_456" }
      - database: { host: "staging-db.example.com", port: 5432 }
      - features: { debugMode: true, rateLimitPerMinute: 500 }
 
 3. **Production Vault**
    - Name: "Production Settings"
-   - Domains:
+   - Groups:
      - apiService: { baseUrl: "https://api.example.com", apiKey: "prod_key_789" }
      - database: { host: "prod-db.example.com", port: 5432 }
      - features: { debugMode: false, rateLimitPerMinute: 100 }
@@ -729,7 +728,7 @@ All configuration values stored in the vault are encrypted using Node-RED's buil
 6. **Separate Environments**: Use different `credentialSecret` values for dev, staging, and production
 
 **For Configuration Management:**
-1. **Organize by Domain**: Group related settings together (e.g., all API settings in one domain)
+1. **Organize by Group**: Organize related settings together (e.g., all API settings in one group)
 2. **Descriptive Names**: Use clear names for vaults (e.g., "Production Settings" not "Vault1")
 3. **Document Values**: Add comments in your flow documentation about which vault settings are used where
 4. **Consistent Naming**: Use consistent property names across environments (e.g., always use "baseUrl" not sometimes "url")
@@ -768,8 +767,8 @@ The following errors will stop the message from being forwarded:
 
 1. **No Vault Configured**: You must select a vault-config node
 2. **No Properties Configured**: At least one property retrieval must be configured
-3. **Domain Not Found**: The specified domain doesn't exist in the vault
-4. **Property Not Found**: The specified property doesn't exist in that domain
+3. **Group Not Found**: The specified group doesn't exist in the vault
+4. **Property Not Found**: The specified property doesn't exist in that group
 5. **Invalid Context**: Context must be msg, flow, or global
 6. **Set Property Failed**: Unable to set the value (e.g., invalid property path)
 
@@ -778,8 +777,8 @@ The following errors will stop the message from being forwarded:
 All errors are logged with descriptive messages:
 
 ```
-Error: Domain not found: apiService
-Error: Property "apiKey" not found in domain: apiService
+Error: Group not found: apiService
+Error: Property "apiKey" not found in group: apiService
 Error: Invalid context type "env", must be msg, flow, or global
 ```
 
@@ -790,50 +789,17 @@ Check the Node-RED debug panel for error details.
 1. Enable debug logging in settings.js: `logging: { console: { level: "debug" } }`
 2. Use debug nodes after the vault node to inspect output
 3. Verify vault configuration in the Configuration nodes panel
-4. Check that domains and property names match exactly (case-sensitive)
-
-## Migration Guide
-
-### From Version 1.3.x to 1.4.x
-
-Version 1.4.0 introduces breaking changes to the runtime node configuration.
-
-**Old Configuration (1.3.x):**
-```javascript
-// Used msg.key to lookup entire credential object
-msg.key = "apiService";
-// Output: msg.credentials = {username: "alice", apiKey: "abc123"}
-```
-
-**New Configuration (1.4.x):**
-```javascript
-// Configure specific properties to retrieve
-Config: apiService.username → msg.username
-        apiService.apiKey → msg.apiKey
-// Output: msg.username = "alice"
-        msg.apiKey = "abc123"
-```
-
-**Migration Steps:**
-
-1. Update package: `npm install node-red-contrib-config-vault@latest`
-2. Open each vault node in your flows
-3. Remove any function nodes that set `msg.key`
-4. Configure property retrievals directly in the vault node
-5. Update downstream nodes to use specific properties instead of `msg.credentials`
-6. Test thoroughly before deploying to production
-
-The vault-config node format is backward compatible - no changes needed.
+4. Check that groups and property names match exactly (case-sensitive)
 
 ## Troubleshooting
 
-### Issue: "Domain not found" error
+### Issue: "Group not found" error
 
-**Cause**: Domain name in vault node doesn't match domain name in vault-config
+**Cause**: Group name in vault node doesn't match group name in vault-config
 
 **Solution**: 
 - Check spelling and case (names are case-sensitive)
-- Open vault-config and verify the domain exists
+- Open vault-config and verify the group exists
 - Use the dropdown in vault node (prevents typos)
 
 ### Issue: Credentials not loading when editing config
@@ -843,7 +809,7 @@ The vault-config node format is backward compatible - no changes needed.
 **Solution**: 
 - Credentials are intentionally not pre-filled when editing
 - Re-enter credentials or leave unchanged
-- If domains appear empty, check that vault-config node is properly saved
+- If groups appear empty, check that vault-config node is properly saved
 
 ### Issue: Values not appearing in flow/global context
 

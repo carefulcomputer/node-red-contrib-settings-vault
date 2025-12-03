@@ -95,7 +95,7 @@
                 
                 const keyLabel = $('<label>', {
                     style: 'margin: 0; font-weight: bold; min-width: 60px;'
-                }).text('Domain:');
+                }).text('Group:');
                 
                 const keyInput = $('<input>', {
                     type: 'text',
@@ -108,9 +108,9 @@
                 const cloneEntryBtn = $('<button>', {
                     type: 'button',
                     class: 'red-ui-button',
-                    title: 'Clone this domain'
+                    title: 'Clone this group'
                 }).html('<i class="fa fa-copy"></i> Clone').on('click', function() {
-                    // Clone the domain with new key
+                    // Clone the group with new key
                     const originalKey = entryContainer.find('.vault-entry-key').val();
                     const newKey = originalKey + '_copy';
                     
@@ -137,7 +137,7 @@
                     type: 'button',
                     class: 'red-ui-button',
                     style: 'margin-left: auto;'
-                }).html('<i class="fa fa-trash"></i> Delete Domain').on('click', function() {
+                }).html('<i class="fa fa-trash"></i> Delete Group').on('click', function() {
                     const entryKey = keyInput.val() || 'this entry';
                     const fieldCount = entryContainer.find('.vault-field-row').length;
                     
@@ -158,7 +158,7 @@
                 // Add field button
                 const addFieldBtn = $('<button>', {
                     type: 'button',
-                    class: 'red-ui-button',
+                    class: 'red-ui-button add-field-btn',
                     style: 'margin-top: 8px; margin-left: 20px;'
                 }).html('<i class="fa fa-plus"></i> Add Field').on('click', function() {
                     addFieldRow(entryId, fieldsList, '', 'str', '');
@@ -537,7 +537,7 @@
     
     <div class="form-row">
         <button type="button" id="vault-add-entry" class="red-ui-button">
-            <i class="fa fa-plus"></i> Add Domain
+            <i class="fa fa-plus"></i> Add Group
         </button>
     </div>
     
@@ -547,9 +547,9 @@
     <div class="form-tips">
         <strong>What is this?</strong> This configuration node stores your settings in one secure, encrypted location. No external dependencies - uses Node-RED's built-in encryption.
         <br><br>
-        <strong>How it works:</strong> Organize settings into <strong>Domains</strong> (logical groups) containing <strong>Properties</strong> (individual values).
+        <strong>How it works:</strong> Organize settings into <strong>Groups</strong> (logical groupings) containing <strong>Properties</strong> (individual values).
         <br><br>
-        <strong>Example:</strong> Domain "apiService" might contain properties: baseUrl ("https://api.example.com"), apiKey (your key), timeout (30000). Use <strong>password</strong> type for sensitive values to mask them in the editor.
+        <strong>Example:</strong> Group "apiService" might contain properties: baseUrl ("https://api.example.com"), apiKey (your key), timeout (30000). Use <strong>password</strong> type for sensitive values to mask them in the editor.
     </div>
 </script>
 
@@ -561,10 +561,10 @@
         <dt>Name <span class="property-type">string</span></dt>
         <dd>A descriptive name for this vault instance (e.g., "Production Settings", "Test Configuration").</dd>
         
-        <dt>Domains <span class="property-type">array</span></dt>
-        <dd>A list of configuration domains. Each domain groups related settings:
+        <dt>Groups <span class="property-type">array</span></dt>
+        <dd>A list of configuration groups. Each group contains related settings:
             <ul>
-                <li><strong>Domain:</strong> A logical grouping (e.g., "apiService", "database", "features")</li>
+                <li><strong>Group:</strong> A logical grouping (e.g., "apiService", "database", "features")</li>
                 <li><strong>Properties:</strong> Multiple properties with:
                     <ul>
                         <li><strong>Property Name:</strong> Setting name (e.g., "baseUrl", "timeout", "enabled")</li>
@@ -605,9 +605,9 @@
     
     <h3>Usage</h3>
     <ol>
-        <li>Click <strong>"Add Domain"</strong> to create a new vault domain</li>
-        <li>Enter a unique domain name (e.g., "apiService", "database")</li>
-        <li>Click <strong>"Add Field"</strong> to add properties within the domain</li>
+        <li>Click <strong>"Add Group"</strong> to create a new vault group</li>
+        <li>Enter a unique group name (e.g., "apiService", "database")</li>
+        <li>Click <strong>"Add Field"</strong> to add properties within the group</li>
         <li>For each property, enter:
             <ul>
                 <li>Property name (e.g., "username", "password", "port")</li>
@@ -615,12 +615,12 @@
                 <li>Value (visible in editor, encrypted when saved)</li>
             </ul>
         </li>
-        <li>Use <strong>"×"</strong> to remove individual properties or <strong>"Delete Domain"</strong> for entire domains</li>
+        <li>Use <strong>"×"</strong> to remove individual properties or <strong>"Delete Group"</strong> for entire groups</li>
         <li>Click <strong>"Update"</strong> to validate and save all changes</li>
     </ol>
     
     <h3>Example: API Service Configuration</h3>
-    <p>Domain: <code>apiService</code></p>
+    <p>Group: <code>apiService</code></p>
     <ul>
         <li>Property: <code>baseUrl</code>, Type: <code>str</code>, Value: <code>https://api.production.com</code></li>
         <li>Property: <code>apiKey</code>, Type: <code>password</code>, Value: <code>sk_live_abc123</code></li>
@@ -629,7 +629,7 @@
     </ul>
     
     <h3>Example: Feature Flags</h3>
-    <p>Domain: <code>features</code></p>
+    <p>Group: <code>features</code></p>
     <ul>
         <li>Property: <code>maintenanceMode</code>, Type: <code>bool</code>, Value: <code>false</code></li>
         <li>Property: <code>debugLogging</code>, Type: <code>bool</code>, Value: <code>false</code></li>
@@ -662,8 +662,8 @@
             const node = this;
             let propertyRowCount = 0;
             
-            // Load available domains from selected vault
-            function loadAvailableDomains() {
+            // Load available groups from selected vault
+            function loadAvailableGroups() {
                 const vaultId = $('#node-input-vault').val();
                 if (!vaultId) return [];
                 
@@ -680,10 +680,10 @@
                 }
             }
             
-            // Load available properties for a given domain
-            function loadPropertiesForDomain(domainName) {
+            // Load available properties for a given group
+            function loadPropertiesForGroup(groupName) {
                 const vaultId = $('#node-input-vault').val();
-                if (!vaultId || !domainName) return [];
+                if (!vaultId || !groupName) return [];
                 
                 const vaultNode = RED.nodes.node(vaultId);
                 if (!vaultNode || !vaultNode.credentials || !vaultNode.credentials.store) {
@@ -692,8 +692,8 @@
                 
                 try {
                     const vault = JSON.parse(vaultNode.credentials.store);
-                    if (vault[domainName] && typeof vault[domainName] === 'object') {
-                        return Object.keys(vault[domainName]);
+                    if (vault[groupName] && typeof vault[groupName] === 'object') {
+                        return Object.keys(vault[groupName]);
                     }
                     return [];
                 } catch (err) {
@@ -701,23 +701,23 @@
                 }
             }
             
-            // Create domain dropdown
-            function createDomainSelect(selectedDomain) {
+            // Create group dropdown
+            function createGroupSelect(selectedGroup) {
                 const select = $('<select>', { style: 'width: 100%;' });
-                const domains = loadAvailableDomains();
+                const groups = loadAvailableGroups();
                 
-                select.append($('<option>', { value: '' }).text('-- select domain --'));
-                domains.forEach(domain => {
-                    select.append($('<option>', { value: domain, selected: domain === selectedDomain }).text(domain));
+                select.append($('<option>', { value: '' }).text('-- select group --'));
+                groups.forEach(group => {
+                    select.append($('<option>', { value: group, selected: group === selectedGroup }).text(group));
                 });
                 
                 return select;
             }
             
             // Create property dropdown
-            function createPropertySelect(domainName, selectedProperty) {
+            function createPropertySelect(groupName, selectedProperty) {
                 const select = $('<select>', { style: 'width: 100%;' });
-                const properties = loadPropertiesForDomain(domainName);
+                const properties = loadPropertiesForGroup(groupName);
                 
                 select.append($('<option>', { value: '' }).text('-- select property --'));
                 properties.forEach(prop => {
@@ -728,7 +728,7 @@
             }
             
             // Add a property row
-            function addPropertyRow(domain, property, output) {
+            function addPropertyRow(group, property, output) {
                 const rowId = 'property-row-' + propertyRowCount++;
                 
                 const row = $('<div>', {
@@ -737,18 +737,18 @@
                     style: 'display: grid; grid-template-columns: 2fr 2fr 2fr 50px; gap: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #fff; margin-bottom: 8px; align-items: center;'
                 });
                 
-                // Domain dropdown
-                const domainSelect = createDomainSelect(domain);
-                row.append(domainSelect);
+                // Group dropdown
+                const groupSelect = createGroupSelect(group);
+                row.append(groupSelect);
                 
                 // Property dropdown
-                const propertySelect = createPropertySelect(domain, property);
+                const propertySelect = createPropertySelect(group, property);
                 row.append(propertySelect);
                 
-                // Update property dropdown when domain changes
-                domainSelect.on('change', function() {
-                    const newDomain = $(this).val();
-                    const newPropertySelect = createPropertySelect(newDomain, '');
+                // Update property dropdown when group changes
+                groupSelect.on('change', function() {
+                    const newGroup = $(this).val();
+                    const newPropertySelect = createPropertySelect(newGroup, '');
                     propertySelect.replaceWith(newPropertySelect);
                     propertySelect.off();
                     
@@ -851,7 +851,7 @@
                 
                 if (node.properties && node.properties.length > 0) {
                     node.properties.forEach(prop => {
-                        addPropertyRow(prop.domain, prop.property, prop.output);
+                        addPropertyRow(prop.group, prop.property, prop.output);
                     });
                 } else {
                     addPropertyRow('', '', '');
@@ -861,7 +861,7 @@
             // Load existing properties
             if (node.properties && node.properties.length > 0) {
                 node.properties.forEach(prop => {
-                    addPropertyRow(prop.domain, prop.property, prop.output);
+                    addPropertyRow(prop.group, prop.property, prop.output);
                 });
             } else {
                 // Add one empty row by default
@@ -873,17 +873,17 @@
             
             $('#properties-list .property-row').each(function() {
                 const row = $(this);
-                const domain = row.find('select').eq(0).val();
+                const group = row.find('select').eq(0).val();
                 const property = row.find('select').eq(1).val();
                 const outputInput = row.find('.property-output');
                 
-                if (domain && property && outputInput.length > 0) {
+                if (group && property && outputInput.length > 0) {
                     const outputType = outputInput.typedInput('type');
                     const outputValue = outputInput.typedInput('value');
                     
                     if (outputValue) {
                         properties.push({
-                            domain: domain,
+                            group: group,
                             property: property,
                             output: outputType + '.' + outputValue
                         });
@@ -908,7 +908,7 @@
     <div class="form-row">
         <label style="width: 100%;"><i class="fa fa-list"></i> Properties to Retrieve</label>
         <div style="display: grid; grid-template-columns: 2fr 2fr 2fr 50px; gap: 10px; padding: 10px 12px; background: #e8e8e8; font-weight: 600; color: #555; border-radius: 4px 4px 0 0; margin-bottom: 5px;">
-            <div>Domain</div>
+            <div>Group</div>
             <div>Property</div>
             <div>Save to</div>
             <div></div>
@@ -919,18 +919,18 @@
         </button>
     </div>
     <div class="form-tips">
-        <strong>How it works:</strong> Each row retrieves one configuration value from a vault domain and saves it to the specified context (msg, flow, or global). Use for credentials, API endpoints, feature flags, or any settings. Perfect for environment-agnostic flows - develop with test settings, deploy with production settings without changing your flow logic.
+        <strong>Purpose:</strong> Centrally store and retrieve configuration values. <strong>How to use:</strong> Select a group, choose a property from that group, and specify where to save it (msg/flow/global context). Perfect for credentials, API endpoints, feature flags, and environment-specific settings - develop with test values, deploy with production values without modifying flows.
     </div>
 </script>
 
 <script type="text/html" data-help-name="vault">
-    <p>Retrieves configuration values from vault domains and saves them to message properties, flow context, or global context. Perfect for centralizing credentials, API endpoints, feature flags, and any other configuration data your flows need.</p>
+    <p>Retrieves configuration values from vault groups and saves them to message properties, flow context, or global context. Perfect for centralizing credentials, API endpoints, feature flags, and any other configuration data your flows need.</p>
     
     <h3>Configuration</h3>
     <p>Configure one or more property retrievals. Each row specifies:</p>
     <ul>
-        <li><strong>Domain:</strong> The vault domain (logical grouping of related settings)</li>
-        <li><strong>Property:</strong> The specific property to retrieve from that domain</li>
+        <li><strong>Group:</strong> The vault group (logical grouping of related settings)</li>
+        <li><strong>Property:</strong> The specific property to retrieve from that group</li>
         <li><strong>Save to:</strong> Where to save the value - supports:
             <ul>
                 <li><code>msg</code> - Message property for per-message data (e.g., <code>msg.apiKey</code>)</li>
@@ -958,7 +958,7 @@
     </dl>
     
     <h3>Details</h3>
-    <p>This node retrieves individual configuration values from vault domains and sets them directly to your chosen context. You can retrieve multiple properties from the same or different domains in a single node.</p>
+    <p>This node retrieves individual configuration values from vault groups and sets them directly to your chosen context. You can retrieve multiple properties from the same or different groups in a single node.</p>
     
     <p><strong>Key Benefits:</strong></p>
     <ul>
@@ -971,8 +971,8 @@
     <p>The node will generate an error if:</p>
     <ul>
         <li>No vault-config node is configured</li>
-        <li>A specified domain is not found in the vault</li>
-        <li>A specified property is not found in the domain</li>
+        <li>A specified group is not found in the vault</li>
+        <li>A specified property is not found in the group</li>
     </ul>
     
     <h3>Example 1: API Integration</h3>
@@ -987,9 +987,9 @@
     
     <p><strong>Node Configuration:</strong></p>
     <ul>
-        <li>Domain: apiService, Property: baseUrl, Save to: msg.baseUrl</li>
-        <li>Domain: apiService, Property: apiKey, Save to: msg.apiKey</li>
-        <li>Domain: apiService, Property: timeout, Save to: msg.timeout</li>
+        <li>Group: apiService, Property: baseUrl, Save to: msg.baseUrl</li>
+        <li>Group: apiService, Property: apiKey, Save to: msg.apiKey</li>
+        <li>Group: apiService, Property: timeout, Save to: msg.timeout</li>
     </ul>
     
     <p><strong>Result:</strong> All API settings retrieved automatically - no hardcoded values in your flow.</p>
@@ -1005,12 +1005,12 @@
     
     <p><strong>Node Configuration:</strong></p>
     <ul>
-        <li>Domain: features, Property: maintenanceMode, Save to: flow.maintenanceMode</li>
+        <li>Group: features, Property: maintenanceMode, Save to: flow.maintenanceMode</li>
     </ul>
     
     <p><strong>Usage:</strong> Use a Switch node after the vault to check <code>flow.maintenanceMode</code> and enable/disable your flows dynamically.</p>
     
     <h3>Example 3: Environment Switching</h3>
-    <p>Create separate vault-config nodes ("Test Settings" and "Production Settings") with the same domain/property structure but different values. Switch between environments by changing which vault-config this node references - no flow changes needed.</p>
+    <p>Create separate vault-config nodes ("Test Settings" and "Production Settings") with the same group/property structure but different values. Switch between environments by changing which vault-config this node references - no flow changes needed.</p>
 </script>
 
