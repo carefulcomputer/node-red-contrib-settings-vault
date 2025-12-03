@@ -22,6 +22,11 @@ A Node-RED module for centralized configuration management with encrypted storag
 
 This module provides a centralized approach to managing any configuration values in Node-RED flows. Instead of hardcoding settings in function nodes, scattering them across multiple flows, or managing separate configuration files, you can define all your configuration values once in a secure configuration node and retrieve them wherever needed.
 
+**Two nodes:**
+This module provides two nodes:
+- **vault-config**: A configuration node where you store all your values (the vault itself)
+- **vault**: A runtime node you use in your flows to retrieve specific values from the vault
+
 **What can you store:**
 - Credentials (API keys, passwords, tokens)
 - API endpoints and base URLs
