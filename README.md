@@ -38,9 +38,9 @@ This module provides two nodes:
 
 **How it works:**
 
-Think of a vault like a drawer in a filing cabinet. Inside this drawer, you have multiple folders (called "groups"), and each folder contains labeled papers (your configuration values).
+Think of the vault-config node (where you store values) like a drawer in a filing cabinet. Inside this drawer, you have multiple folders (called "groups"), and each folder contains labeled papers (your configuration values). The vault runtime node then retrieves specific values from this drawer when needed.
 
-For example, a vault named "Production Settings" might contain:
+For example, a vault-config named "Production Settings" might contain:
 - A folder labeled "apiService" with papers for: baseUrl, apiKey, timeout
 - A folder labeled "database" with papers for: host, port, username, password
 - A folder labeled "emailServer" with papers for: smtp, port, credentials
