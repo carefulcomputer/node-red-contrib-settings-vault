@@ -34,7 +34,15 @@ This module provides a centralized approach to managing any configuration values
 - Any other configuration data your flows need
 
 **How it works:**
-All values are encrypted using Node-RED's built-in credential encryption mechanism and stored in the `flows_cred.json` file. This ensures sensitive data never appears in plain text in your `flows.json` file, while keeping everything in one place for easy management.
+
+Think of a vault like a drawer in a filing cabinet. Inside this drawer, you have multiple folders (called "groups"), and each folder contains labeled papers (your configuration values).
+
+For example, a vault named "Production Settings" might contain:
+- A folder labeled "apiService" with papers for: baseUrl, apiKey, timeout
+- A folder labeled "database" with papers for: host, port, username, password
+- A folder labeled "emailServer" with papers for: smtp, port, credentials
+
+All values are encrypted using Node-RED's built-in credential encryption mechanism and stored in the `flows_cred.json` file. This ensures sensitive data never appears in plain text in your `flows.json` file.
 
 **No external dependencies:**
 This module uses only Node-RED's native encryption functionality. No external libraries, no additional setup, no separate vault servers to maintain.
@@ -114,39 +122,6 @@ When messages pass through the vault node, the configured values will be automat
 ### Configuration Node
 
 The `vault-config` node is where you define and store all your configuration values.
-
-#### Structure
-
-You can store multiple groups of settings in a single vault. Each group contains related properties.
-
-**Example:** A vault named "Production Settings" could contain separate groups for different services:
-
-```
-Vault: "Production Settings"
-├── Group: apiService
-│   ├── baseUrl (str): "https://api.production.com"
-│   ├── apiKey (password): "sk_live_abc123"
-│   ├── timeout (num): 30000
-│   ├── retryEnabled (bool): true
-│   └── maxRetries (num): 3
-├── Group: database
-│   ├── host (str): "db.production.com"
-│   ├── port (num): 5432
-│   ├── username (str): "app_user"
-│   ├── password (password): "dbpass123"
-│   ├── ssl (bool): true
-│   └── poolSize (num): 10
-├── Group: emailServer
-│   ├── smtp (str): "smtp.example.com"
-│   ├── port (num): 587
-│   ├── secure (bool): true
-│   └── credentials (json): {"user":"mail@example.com","pass":"mailpass"}
-└── Group: features
-    ├── debugMode (bool): false
-    ├── rateLimitPerMinute (num): 100
-    ├── maintenanceMode (bool): false
-    └── allowedRegions (json): ["us-east","eu-west"]
-```
 
 #### Supported Data Types
 
