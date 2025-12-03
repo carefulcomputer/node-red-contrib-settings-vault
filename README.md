@@ -7,10 +7,7 @@ A Node-RED module for centralized configuration management with encrypted storag
 - [Overview](#overview)
 - [Why Use Config Vault](#why-use-config-vault)
 - [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Detailed Usage](#detailed-usage)
-  - [Configuration Node](#configuration-node)
-  - [Runtime Node](#runtime-node)
+- [Usage](#usage)
 - [Use Cases](#use-cases)
 - [Multiple Configuration Sets](#multiple-configuration-sets)
 - [Security](#security)
@@ -45,9 +42,9 @@ For example, a vault-config named "Production Settings" might contain:
 - A folder labeled "database" with papers for: host, port, username, password
 - A folder labeled "emailServer" with papers for: smtp, port, credentials
 
-The vault runtime node is what you place in your flows to retrieve values. You configure it by specifying which folder (group) to open, which paper (property) to read, and where to put that value (in `msg`, `flow`, or `global` context). When a message passes through the vault node, it automatically retrieves the configured values from the drawer and makes them available to the rest of your flow.
-
 All values are encrypted using Node-RED's built-in credential encryption mechanism and stored in the `flows_cred.json` file. This ensures sensitive data never appears in plain text in your `flows.json` file.
+
+The vault runtime node is what you place in your flows to retrieve values. You configure it by specifying which folder (group) to open, which paper (property) to read, and where to put that value (in `msg`, `flow`, or `global` context). When a message passes through the vault node, it automatically retrieves the configured values from the drawer and makes them available to the rest of your flow.
 
 ## Why Use Config Vault
 
@@ -76,47 +73,19 @@ npm install node-red-contrib-config-vault
 
 After installation, restart Node-RED to load the new nodes.
 
-## Quick Start
+## Usage
 
-### 1. Create a Vault Configuration
-
-A vault stores your configuration values organized by groups. Each group contains related settings.
+### Creating a Vault Configuration
 
 1. Open Node-RED editor
 2. Go to menu (three horizontal lines) → Configuration nodes
 3. Click "Add" and select "vault-config"
-4. Give it a meaningful name that describes this set of settings
-5. Click "Add Group" and name it based on what settings it contains (e.g., name it "apiService" if storing API-related settings)
-6. Add properties within that group - each property has a name, type, and value
+4. Give it a meaningful name (e.g., "Production Settings")
+5. Click "Add Group" and name it based on what it contains (e.g., "apiService" for API-related settings)
+6. Add properties within that group - each has a name, type, and value
 7. Click "Update" to save
 
-**Example:** If you need to store API settings, you might create a group called "apiService" with properties like `baseUrl`, `apiKey`, and `timeout`.
-
-### 2. Use in Your Flow
-
-The vault node retrieves specific values from your vault and makes them available in your flow.
-
-1. Drag the "vault" node into your flow
-2. Double-click to configure
-3. Select which vault configuration to use
-4. Configure what to retrieve (one row appears by default):
-   - **Group**: Select which group contains the value you need
-   - **Property**: Select which specific value from that group
-   - **Output**: Choose where to store it (`msg`, `flow`, or `global`) and enter the property name
-5. Click "Done" to save
-6. Deploy your flow
-
-When messages pass through the vault node, the configured values will be automatically populated.
-
-**Tip:** Add multiple rows to retrieve several values at once.
-
-## Detailed Usage
-
-### Configuration Node
-
-The `vault-config` node is where you define and store all your configuration values.
-
-#### Supported Data Types
+**Supported data types:**
 
 | Type | Description | Use Case |
 |------|-------------|----------|
@@ -127,23 +96,20 @@ The `vault-config` node is where you define and store all your configuration val
 | `json` | JSON object/array | Complex configurations, nested data |
 | `date` | Timestamp | Expiration dates, schedule times |
 
-### Runtime Node
+**Example:** For API settings, create a group "apiService" with properties: `baseUrl` (str), `apiKey` (password), `timeout` (num).
 
-The `vault` node retrieves specific property values from your vault and makes them available in your flow.
+### Using in Your Flow
 
-#### Configuration
+1. Drag the "vault" node into your flow
+2. Double-click to configure
+3. Select which vault-config to use
+4. Configure what to retrieve (add multiple rows as needed):
+   - **Group**: Which group contains the value
+   - **Property**: Which specific value to retrieve
+   - **Output**: Where to store it (`msg`, `flow`, or `global`) and the property name
+5. Click "Done" and deploy
 
-Each row in the vault node configuration specifies:
-
-1. **Group** (dropdown): Which group to retrieve from
-2. **Property** (dropdown): Which specific value to retrieve
-3. **Output** (context selector): Where to store the value
-   - Select context type: `msg`, `flow`, or `global`
-   - Enter property name
-
-**Example:** To retrieve an API key from the "apiService" group and store it in `msg.apiKey`, you would select Group: "apiService", Property: "apiKey", Output: msg.apiKey.
-
-You can add multiple rows to retrieve several values at once.
+When messages pass through the vault node, the configured values are automatically retrieved and populated.
 
 ## Use Cases
 
