@@ -74,7 +74,7 @@ With Config Vault:
 - **Encrypted Storage**: Automatic encryption using Node-RED's built-in credential system - no external dependencies
 - **One-Click Updates**: Change a configuration value once and it updates everywhere it's used
 - **Flexible Retrieval**: Access values via message properties, flow context, or global context
-- **Type-Safe Inputs**: Support for strings, numbers, booleans, JSON, buffers, dates, and masked passwords
+- **Type-Safe Inputs**: Support for strings, numbers, booleans, JSON, dates, and masked passwords
 - **Visual Interface**: Field-based UI with dropdowns and validation - no JSON syntax errors
 - **Logical Grouping**: Organize related settings together (e.g., "apiService", "database", "emailServer")
 - **Dynamic Configuration**: Dropdowns auto-populate from your vault, preventing typos
@@ -213,7 +213,6 @@ Vault: "Production Settings"
 - **Collapse/Expand**: Groups are collapsed by default for easy navigation
 - **Clone**: Duplicate groups to create variations (e.g., dev, staging, prod)
 - **Validation**: Real-time validation with visual feedback
-- **Confirmation Dialogs**: Prevents accidental deletion of groups or properties
 - **No JSON Editing**: Structured inputs eliminate syntax errors
 
 ### Runtime Node
@@ -474,14 +473,14 @@ Check the Node-RED debug panel for error details.
 - Open vault-config and verify the group exists
 - Use the dropdown in vault node (prevents typos)
 
-### Issue: Credentials not loading when editing config
+### Issue: Dropdowns appear empty in vault node
 
-**Cause**: This is by design for security
+**Cause**: Vault-config node hasn't been saved yet or doesn't contain any groups
 
 **Solution**: 
-- Credentials are intentionally not pre-filled when editing
-- Re-enter credentials or leave unchanged
-- If groups appear empty, check that vault-config node is properly saved
+- Open the vault-config node and verify groups and properties exist
+- Make sure you clicked "Update" to save the vault-config
+- Dropdowns will show your saved selections even if the vault-config hasn't been opened yet
 
 ### Issue: Values not appearing in flow/global context
 
