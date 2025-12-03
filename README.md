@@ -45,6 +45,8 @@ For example, a vault-config named "Production Settings" might contain:
 - A folder labeled "database" with papers for: host, port, username, password
 - A folder labeled "emailServer" with papers for: smtp, port, credentials
 
+The vault runtime node is what you place in your flows to retrieve values. You configure it by specifying which folder (group) to open, which paper (property) to read, and where to put that value (in `msg`, `flow`, or `global` context). When a message passes through the vault node, it automatically retrieves the configured values from the drawer and makes them available to the rest of your flow.
+
 All values are encrypted using Node-RED's built-in credential encryption mechanism and stored in the `flows_cred.json` file. This ensures sensitive data never appears in plain text in your `flows.json` file.
 
 ## Why Use Config Vault
