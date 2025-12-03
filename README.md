@@ -218,24 +218,26 @@ The vault node includes comprehensive error handling:
 
 The following errors will stop the message from being forwarded:
 
-1. **No Vault Configured**: You must select a vault-config node
-2. **No Properties Configured**: At least one property retrieval must be configured
-3. **Group Not Found**: The specified group doesn't exist in the vault
-4. **Property Not Found**: The specified property doesn't exist in that group
-5. **Invalid Context**: Context must be msg, flow, or global
-6. **Set Property Failed**: Unable to set the value (e.g., invalid property path)
+1. **No Vault Configured**: No vault-config node selected
+2. **No Properties Configured**: No property retrievals configured in the node
+3. **Invalid Property Configuration**: One or more property rows are incomplete
+4. **Group Not Found**: The specified group doesn't exist in the vault-config
+5. **Property Not Found**: The specified property doesn't exist in that group
+6. **Invalid Output Format**: Output must be in format: context.property (e.g., msg.apiKey)
+7. **Invalid Context Type**: Context must be msg, flow, or global
+8. **Set Property Failed**: Unable to set the value to the specified location
 
-### Error Logging
+### Error Messages
 
-All errors are logged with descriptive messages:
+Errors appear in the Node-RED debug panel with descriptive messages:
 
 ```
-Error: Group not found: apiService
-Error: Property "apiKey" not found in group: apiService
-Error: Invalid context type "env", must be msg, flow, or global
+Group not found: apiService
+Property "apiKey" not found in group: apiService
+Invalid context type "env", must be msg, flow, or global
 ```
 
-Check the Node-RED debug panel for error details.
+Additionally, the node displays a red status indicator with a brief error description.
 
 ### Debugging
 
