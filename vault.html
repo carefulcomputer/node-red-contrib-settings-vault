@@ -754,23 +754,36 @@
                 const row = $('<div>', {
                     id: rowId,
                     class: 'property-row',
-                    style: 'display: grid; grid-template-columns: 2fr 2fr 2fr 50px; gap: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: #fff; margin-bottom: 8px; align-items: center;'
+                    style: 'margin-bottom: 8px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; background-color: #fff; display: flex; align-items: center; gap: 8px;'
                 });
                 
                 // Group dropdown
                 const groupSelect = createGroupSelect(group, vaultId);
+                groupSelect.css('flex', '1');
                 row.append(groupSelect);
                 
-                // Property dropdown
-                const propertySelect = createPropertySelect(group, property, vaultId);
+                // Property dropdown (using let so we can update the reference)
+                let propertySelect = createPropertySelect(group, property, vaultId);
+                propertySelect.css('flex', '1');
                 row.append(propertySelect);
                 
                 // Update property dropdown when group changes
                 groupSelect.on('change', function() {
                     const newGroup = $(this).val();
                     const newPropertySelect = createPropertySelect(newGroup, '', vaultId);
-                    propertySelect.replaceWith(newPropertySelect);
+                    newPropertySelect.css('flex', '1');
+                    
+                    // Remove old handlers and replace in DOM
                     propertySelect.off();
+                    propertySelect.replaceWith(newPropertySelect);
+                    
+                    // Update reference to point to the new select
+                    propertySelect = newPropertySelect;
+                    
+                    // Trigger validation immediately
+                    if (node._validateAndUpdateButton) {
+                        node._validateAndUpdateButton();
+                    }
                     
                     // Update output field when new property is selected
                     // IMPORTANT: Wait for TypedInput initialization before attaching handler
@@ -781,18 +794,33 @@
                             if (propValue && !outputInput.data('userModified')) {
                                 outputInput.typedInput('value', propValue);
                             }
+                            // Trigger validation on property change
+                            if (node._validateAndUpdateButton) {
+                                node._validateAndUpdateButton();
+                            }
                         });
                     }, 10); // Small delay to ensure TypedInput is ready
                 });
                 
-                // Output field with TypedInput (msg/flow/global)
-                const outputInput = $('<input>', {
-                    type: 'text',
-                    class: 'property-output',
-                    style: 'width: 100%;'
+                // Output field container with TypedInput (msg/flow/global)
+                const outputContainer = $('<div>', {
+                    style: 'flex: 1; min-width: 150px;'
                 });
                 
-                row.append(outputInput);
+                const outputInput = $('<input>', {
+                    type: 'text',
+                    class: 'property-output'
+                });
+                
+                outputContainer.append(outputInput);
+                row.append(outputContainer);
+                
+                // Validation indicator
+                const validationIcon = $('<span>', {
+                    class: 'property-validation-icon',
+                    style: 'min-width: 20px; text-align: center;'
+                }).html('');
+                row.append(validationIcon);
                 
                 // Initialize TypedInput after adding to DOM
                 setTimeout(function() {
@@ -831,14 +859,18 @@
                         if (propValue && !outputInput.data('userModified')) {
                             outputInput.typedInput('value', propValue);
                         }
+                        // Trigger validation on property change
+                        if (node._validateAndUpdateButton) {
+                            node._validateAndUpdateButton();
+                        }
                     });
                 }, 0);
                 
                 // Delete button
                 const deleteBtn = $('<button>', {
                     type: 'button',
-                    class: 'red-ui-button property-delete-btn',
-                    style: 'padding: 6px 10px; font-size: 12px;'
+                    class: 'red-ui-button red-ui-button-small property-delete-btn',
+                    style: 'min-width: 30px;'
                 }).html('<i class="fa fa-times"></i>').on('click', function() {
                     row.remove();
                     updateDeleteButtons();
@@ -914,7 +946,7 @@
                 addPropertyRow('', '', '', null);
             }
             
-            // Validation function that updates Done button state
+            // Validation function that updates Done button state and row indicators
             node._validateAndUpdateButton = function() {
                 const doneButton = $('#node-dialog-ok');
                 let validPropertyCount = 0;
@@ -926,6 +958,7 @@
                     const property = row.find('select').eq(1).val();
                     const outputInput = row.find('.property-output');
                     const outputValue = outputInput.length > 0 ? outputInput.typedInput('value') : '';
+                    const validationIcon = row.find('.property-validation-icon');
                     
                     // Check if row has any value filled
                     const hasAnyValue = group || property || outputValue;
@@ -934,9 +967,19 @@
                         // Check if all fields are filled
                         if (group && property && outputValue) {
                             validPropertyCount++;
+                            // Clear error indicator
+                            row.css('background-color', '#fff');
+                            validationIcon.html('');
                         } else {
                             hasPartialRow = true;
+                            // Show error indicator
+                            row.css('background-color', '#ffe6e6');
+                            validationIcon.html('<i class="fa fa-exclamation-triangle" style="color: #c00;"></i>');
                         }
+                    } else {
+                        // Empty row - clear indicators
+                        row.css('background-color', '#fff');
+                        validationIcon.html('');
                     }
                 });
                 

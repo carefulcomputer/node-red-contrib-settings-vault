@@ -144,20 +144,23 @@ module.exports = function(RED) {
             send = send || function() { node.send.apply(node, arguments); };
             done = done || function(err) { if (err) { node.error(err, msg); } };
             
+            // Clear any previous error status
+            node.status({});
+            
             try {
                 // Validate: Ensure vault-config node is configured
                 if (!node.vaultConfig) {
-                    const err = new Error('No vault-config node configured');
-                    node.error(err.message, msg);
-                    done(err);
+                    node.status({fill: 'red', shape: 'ring', text: 'No vault configured'});
+                    node.error('No vault-config node configured', msg);
+                    done();
                     return;
                 }
                 
                 // Validate: Ensure at least one property is configured
                 if (!node.properties || node.properties.length === 0) {
-                    const err = new Error('No properties configured to retrieve');
-                    node.error(err.message, msg);
-                    done(err);
+                    node.status({fill: 'red', shape: 'ring', text: 'No properties configured'});
+                    node.error('No properties configured to retrieve', msg);
+                    done();
                     return;
                 }
                 
@@ -167,9 +170,9 @@ module.exports = function(RED) {
                     
                     // Validate: Ensure property configuration is complete
                     if (!prop.group || !prop.property || !prop.output) {
-                        const err = new Error('Invalid property configuration at index ' + i);
-                        node.error(err.message, msg);
-                        done(err);
+                        node.status({fill: 'red', shape: 'ring', text: 'Invalid configuration'});
+                        node.error('Invalid property configuration at index ' + i, msg);
+                        done();
                         return;
                     }
                     
@@ -177,17 +180,17 @@ module.exports = function(RED) {
                     const groupCredentials = node.vaultConfig.getCredentialsForKey(prop.group);
                     
                     if (groupCredentials === null) {
-                        const err = new Error('Group not found: ' + prop.group);
-                        node.error(err.message, msg);
-                        done(err);
+                        node.status({fill: 'red', shape: 'ring', text: 'Group not found: ' + prop.group});
+                        node.error('Group not found: ' + prop.group, msg);
+                        done();
                         return;
                     }
                     
                     // Step 2: Check if the specific property exists in this group
                     if (!groupCredentials.hasOwnProperty(prop.property)) {
-                        const err = new Error('Property "' + prop.property + '" not found in group: ' + prop.group);
-                        node.error(err.message, msg);
-                        done(err);
+                        node.status({fill: 'red', shape: 'ring', text: 'Property not found: ' + prop.property});
+                        node.error('Property "' + prop.property + '" not found in group: ' + prop.group, msg);
+                        done();
                         return;
                     }
                     
@@ -200,9 +203,9 @@ module.exports = function(RED) {
                         
                         // Validate output format (must have at least context type and property name)
                         if (outputParts.length < 2) {
-                            const err = new Error('Invalid output format "' + prop.output + '", expected format: msg.property or flow.property or global.property');
-                            node.error(err.message, msg);
-                            done(err);
+                            node.status({fill: 'red', shape: 'ring', text: 'Invalid output format'});
+                            node.error('Invalid output format "' + prop.output + '", expected format: msg.property or flow.property or global.property', msg);
+                            done();
                             return;
                         }
                         
@@ -228,29 +231,31 @@ module.exports = function(RED) {
                             
                         } else {
                             // Invalid context type
-                            const err = new Error('Invalid context type "' + contextType + '", must be msg, flow, or global');
-                            node.error(err.message, msg);
-                            done(err);
+                            node.status({fill: 'red', shape: 'ring', text: 'Invalid context: ' + contextType});
+                            node.error('Invalid context type "' + contextType + '", must be msg, flow, or global', msg);
+                            done();
                             return;
                         }
                         
                     } catch (setErr) {
                         // Catch errors from setting properties (e.g., invalid property path)
-                        const err = new Error('Failed to set property "' + prop.output + '": ' + setErr.message);
-                        node.error(err.message, msg);
-                        done(err);
+                        node.status({fill: 'red', shape: 'ring', text: 'Failed to set property'});
+                        node.error('Failed to set property "' + prop.output + '": ' + setErr.message, msg);
+                        done();
                         return;
                     }
                 }
                 
                 // All properties successfully retrieved and set - forward the message
+                node.status({});
                 send(msg);
                 done();
                 
             } catch (err) {
                 // Catch any unexpected errors to prevent Node-RED crashes
+                node.status({fill: 'red', shape: 'ring', text: 'Unexpected error'});
                 node.error(err.message, msg);
-                done(err);
+                done();
             }
         });
     }
