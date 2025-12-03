@@ -7,6 +7,7 @@ A Node-RED module for centralized configuration management with encrypted storag
 - [Overview](#overview)
 - [Why Use Config Vault](#why-use-config-vault)
 - [Key Features](#key-features)
+- [Key Benefits](#key-benefits)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Detailed Usage](#detailed-usage)
@@ -16,6 +17,7 @@ A Node-RED module for centralized configuration management with encrypted storag
 - [Multiple Configuration Sets](#multiple-configuration-sets)
 - [Security](#security)
 - [Error Handling](#error-handling)
+- [Best Practices](#best-practices)
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
 
@@ -77,6 +79,38 @@ With Config Vault:
 - **Logical Grouping**: Organize related settings together (e.g., "apiService", "database", "emailServer")
 - **Dynamic Configuration**: Dropdowns auto-populate from your vault, preventing typos
 - **No External Dependencies**: Uses only Node-RED's native functionality - no additional packages or servers
+
+## Key Benefits
+
+**Easy Testing**
+- Test with production-like settings without affecting real systems
+- Quickly switch between test and production data sources
+- Reproduce production issues with test data
+
+**Risk Mitigation**
+- Separate credentials for each environment reduces security risk
+- Accidental deployments to wrong environment won't use wrong credentials
+- No production API calls during development
+
+**Team Collaboration**
+- Developers use dev settings, QA uses staging settings
+- No need to share production credentials with entire team
+- Same flow logic works for everyone
+
+**Simple Deployment**
+- Export flow once, works in any environment
+- Just point to appropriate vault-config node
+- No code changes between environments
+
+**Configuration Tracking**
+- Each environment's settings clearly defined in one place
+- Easy to compare what differs between environments
+- Version control friendly (flows separate from credentials)
+
+**Environment-Agnostic Flows**
+- Develop with test settings, deploy with production settings
+- Same flow logic, different configuration
+- Quick environment switching for testing or demos
 
 ## Installation
 
@@ -255,448 +289,87 @@ global.dbHost = "db.example.com"
 
 ## Use Cases
 
-### Centralized Configuration Management
-
-Store all your application settings in one place:
-
-```
-[inject] → [vault] → [your logic]
-```
-
-Vault configuration:
-- features.debugMode → flow.debugEnabled
-- features.rateLimitPerMinute → flow.rateLimit
-- apiService.baseUrl → flow.apiUrl
-
-All flows in your tab can now access these shared settings from flow context.
-
 ### API Integration
-
-Store API endpoints and credentials together:
+Store API credentials and endpoints together, then use them in HTTP requests.
 
 ```
-[inject] → [vault] → [function: build request] → [http request]
+[vault] → [http request]
 ```
 
-Vault configuration:
-- apiService.apiKey → msg.apiKey
-- apiService.baseUrl → msg.baseUrl
-
-Function node:
-```javascript
-msg.url = msg.baseUrl + "/users";
-msg.headers = {
-    "Authorization": "Bearer " + msg.apiKey
-};
-return msg;
-```
+Vault: `apiService.baseUrl → msg.baseUrl`, `apiService.apiKey → msg.apiKey`
 
 ### Database Connections
-
-Store database credentials and use in database nodes:
-
-```
-[inject] → [vault] → [mysql]
-```
-
-Vault configuration:
-- database.host → msg.host
-- database.user → msg.user
-- database.password → msg.password
-
-The mysql node can then use these message properties directly.
-
-### Feature Flags and Flow Control
-
-Use configuration values to dynamically control flow behavior without modifying the flows themselves.
-
-#### Enable/Disable Flows
+Retrieve database credentials and connection settings for database nodes.
 
 ```
-[inject] → [vault] → [switch: check maintenance mode] → [your flow logic]
-                                    ↓ (if disabled)
-                                 [return/stop]
+[vault] → [mysql/postgres/mongodb]
 ```
 
-Vault configuration:
-- features.maintenanceMode → flow.maintenanceMode
+Vault: `database.host → msg.host`, `database.user → msg.user`, `database.password → msg.password`
 
-Switch node configuration:
-- If `flow.maintenanceMode == true`: Route to output 2 (stop processing)
-- If `flow.maintenanceMode == false`: Route to output 1 (continue)
-
-**Benefit:** Enable maintenance mode by changing one vault setting, instantly stopping all dependent flows without editing any flow logic.
-
-#### Redirect Flows Based on Configuration
+### Feature Flags
+Control flow behavior dynamically without modifying flow logic.
 
 ```
-[inject] → [vault] → [switch: check environment] → Output 1: Production API
-                                                  → Output 2: Test API
-                                                  → Output 3: Mock Service
+[vault] → [switch: check flag] → route based on configuration
 ```
 
-Vault configuration:
-- features.useTestAPI → flow.useTestAPI
-- features.useMockService → flow.useMockService
+Vault: `features.maintenanceMode → flow.maintenance`, `features.useTestAPI → flow.testMode`
 
-**Benefit:** Dynamically route to different services based on configuration. Perfect for A/B testing, canary deployments, or switching between live and test services.
+**Examples:**
+- Enable/disable flows based on maintenance mode
+- Route to different APIs (production/test/mock) based on configuration
+- Adjust thresholds or limits without redeploying flows
 
-#### Dynamic Thresholds
-
-```
-[sensor data] → [vault] → [function: apply thresholds] → [alert if exceeded]
-```
-
-Vault configuration:
-- thresholds.temperatureMax → flow.tempMax
-- thresholds.temperatureWarning → flow.tempWarning
-- thresholds.rateLimitPerMinute → flow.rateLimit
-
-**Benefit:** Adjust operational parameters without flow changes. Update thresholds based on changing requirements or seasonal patterns.
-
-### Shared Settings Across Flows
-
-Use flow or global context to share configuration:
+### Shared Configuration
+Store settings in flow or global context for access across multiple flows.
 
 ```
-Flow 1: [vault] → [http request]
-                ↓
-            flow.apiUrl
-                ↓
-Flow 2:     [http request]  (uses same flow.apiUrl)
+[vault] → stores to flow.apiUrl
+Multiple flows read flow.apiUrl without duplicating vault nodes
 ```
 
-Both flows can access the same base URL without duplication.
+### Multi-Environment Deployment
+Develop flows with test settings, deploy to production with different settings - no flow changes needed.
 
-### Environment-Agnostic Flow Development
-
-One of the most powerful benefits of Config Vault is the ability to develop and test flows with one set of settings, then deploy to production with different settings - all without changing a single node in your flow logic.
-
-#### The Development Workflow
-
-**Step 1: Create Your Flow with Test Settings**
-
-1. Create a vault-config node named "Test Settings"
-   - apiService.baseUrl: "http://localhost:3000"
-   - apiService.apiKey: "test_key_123"
-   - database.host: "localhost"
-   - features.enableDebugLogging: true
-
-2. Build your flow using this vault:
-```
-[inject] → [vault: Test Settings] → [http request] → [database insert] → [debug]
-```
-
-3. Develop and test thoroughly with local services
-
-**Step 2: Deploy to Production Without Changing Flows**
-
-1. Create another vault-config node named "Production Settings"
-   - apiService.baseUrl: "https://api.production.com"
-   - apiService.apiKey: "prod_key_789"
-   - database.host: "prod-db.example.com"
-   - features.enableDebugLogging: false
-
-2. Change the vault reference in your vault node from "Test Settings" to "Production Settings"
-
-3. Deploy - **that's it!**
-
-**The flow logic remains identical:**
-- Same HTTP request nodes
-- Same function nodes
-- Same database nodes
-- Same error handling
-- Same business logic
-
-**Only the configuration changes:**
-- Different API endpoint
-- Different credentials
-- Different database
-- Different feature flags
-
-#### Real-World Example
-
-**Scenario:** API integration flow that needs to work in both test and production environments.
-
-**Flow (never changes):**
-```
-[scheduled trigger]
-    ↓
-[vault node] → retrieves: baseUrl, apiKey, timeout, retryCount
-    ↓
-[function: build request] → uses msg.baseUrl, msg.apiKey
-    ↓
-[http request] → calls msg.baseUrl/endpoint
-    ↓
-[function: process response]
-    ↓
-[database insert] → uses msg.dbHost from vault
-```
-
-**Test Configuration:**
-```json
-{
-  "apiService": {
-    "baseUrl": "http://localhost:3000",
-    "apiKey": "test_key",
-    "timeout": 5000,
-    "retryCount": 1
-  },
-  "database": {
-    "host": "localhost:5432"
-  }
-}
-```
-
-**Production Configuration:**
-```json
-{
-  "apiService": {
-    "baseUrl": "https://api.production.com",
-    "apiKey": "sk_live_prod_key_abc123",
-    "timeout": 30000,
-    "retryCount": 3
-  },
-  "database": {
-    "host": "prod-db-cluster.example.com:5432"
-  }
-}
-```
-
-**Deployment Process:**
-1. Develop flow with "Test Settings" vault
-2. Test thoroughly in development environment
-3. Export flow (or commit to git)
-4. Import to production Node-RED instance
-5. Change vault node reference to "Production Settings"
-6. Deploy
-
-**Result:** Identical business logic, different execution environment.
-
-#### Benefits of This Approach
-
-**1. Risk Reduction**
-- Test with real flow logic but safe test data
-- No accidental production API calls during development
-- No risk of corrupting production database during testing
-
-**2. Simplified Deployment**
-- No code changes between environments
-- No search-and-replace of URLs or credentials
-- Single point of configuration change
-
-**3. Easier Troubleshooting**
-- Test exact production flow logic locally
-- Reproduce production issues with test data
-- Debug without affecting production services
-
-**4. Team Productivity**
-- Developers work with test settings
-- QA team works with staging settings
-- Operations team manages production settings
-- Everyone uses the same flow logic
-
-**5. Version Control**
-- Commit `flows.json` to git (contains flow logic)
-- Exclude `flows_cred.json` from git (contains secrets)
-- Each environment maintains its own encrypted credentials
-- Flow logic stays consistent across all environments
-
-**6. Quick Environment Switching**
-- Need to test against production data? Switch vault reference temporarily
-- Need to demo without hitting real APIs? Switch to mock service vault
-- Want to run load tests? Switch to load test environment vault
+**Workflow:**
+1. Create "Dev Settings" vault with test endpoints and credentials
+2. Build and test flow using dev vault
+3. Create "Production Settings" vault with production endpoints and credentials
+4. Switch vault reference in node → Deploy
+5. Same flow logic, different configuration
 
 ## Multiple Configuration Sets
 
-One of the most powerful features of Config Vault is the ability to maintain multiple configuration sets for different environments or use cases. This allows you to:
+Maintain multiple vault-config nodes for different environments or use cases:
 
 - **Separate environments**: Development, staging, and production configurations
 - **Different clients**: Customer A settings vs Customer B settings
-- **Testing scenarios**: Production data vs test data
+- **Testing scenarios**: Production data vs test data vs mock data
 - **Regional configurations**: US servers vs EU servers
 
-### Creating Multiple Vaults
+### Example Setup
 
-Create separate vault-config nodes for each configuration set:
+Create separate vault-config nodes with the same structure but different values:
 
-1. **Development Vault**
-   - Name: "Development Settings"
-   - Groups:
-     - apiService: { baseUrl: "http://localhost:3000", apiKey: "dev_key_123" }
-     - database: { host: "localhost", port: 5432 }
-     - features: { debugMode: true, rateLimitPerMinute: 1000 }
+```
+"Development Settings":
+  - apiService: { baseUrl: "http://localhost:3000", apiKey: "dev_key" }
+  - database: { host: "localhost" }
 
-2. **Staging Vault**
-   - Name: "Staging Settings"
-   - Groups:
-     - apiService: { baseUrl: "https://staging-api.example.com", apiKey: "stg_key_456" }
-     - database: { host: "staging-db.example.com", port: 5432 }
-     - features: { debugMode: true, rateLimitPerMinute: 500 }
+"Production Settings":
+  - apiService: { baseUrl: "https://api.example.com", apiKey: "prod_key" }
+  - database: { host: "prod-db.example.com" }
+```
 
-3. **Production Vault**
-   - Name: "Production Settings"
-   - Groups:
-     - apiService: { baseUrl: "https://api.example.com", apiKey: "prod_key_789" }
-     - database: { host: "prod-db.example.com", port: 5432 }
-     - features: { debugMode: false, rateLimitPerMinute: 100 }
+### Switching Environments
 
-### Switching Between Configuration Sets
-
-To switch from one environment to another, simply change which vault-config node your vault nodes reference:
-
-**Method 1: Edit Each Vault Node**
+To switch from one environment to another:
 1. Double-click the vault node
-2. Change the "Vault" dropdown from "Development Settings" to "Production Settings"
-3. Click "Done"
-4. Deploy
+2. Change "Vault" dropdown from "Development Settings" to "Production Settings"
+3. Deploy
 
-**Method 2: Duplicate Flows for Different Environments**
-1. Create separate flow tabs: "API Flow (Dev)", "API Flow (Staging)", "API Flow (Prod)"
-2. Each flow uses the same logic but references different vault-config nodes
-3. Enable/disable tabs as needed for each environment
-
-**Method 3: Use Subflows (Recommended)**
-1. Create a subflow with your business logic
-2. Pass the vault-config reference as a subflow property
-3. Instantiate the subflow multiple times with different vault references
-
-### Example: Multi-Environment Setup
-
-#### Configuration
-```
-Vault-Config Nodes:
-├── "Dev Settings"
-│   └── apiService.baseUrl = "http://localhost:3000"
-├── "Staging Settings"
-│   └── apiService.baseUrl = "https://staging-api.example.com"
-└── "Production Settings"
-    └── apiService.baseUrl = "https://api.example.com"
-
-Flow Setup:
-Tab 1 (Development):
-    [inject] → [vault: Dev Settings] → [http request]
-
-Tab 2 (Production):
-    [inject] → [vault: Production Settings] → [http request]
-```
-
-#### Workflow
-1. Develop and test using the Development tab
-2. When ready, copy flow to Staging tab and change vault reference
-3. Test in staging environment
-4. When validated, copy to Production tab and change vault reference
-5. All business logic remains identical - only configuration changes
-
-### Benefits of Multiple Configuration Sets
-
-**Easy Testing**
-- Test with production-like settings without affecting real systems
-- Quickly switch between test and production data sources
-
-**Risk Mitigation**
-- Separate credentials for each environment reduces security risk
-- Accidental deployments to wrong environment won't use wrong credentials
-
-**Team Collaboration**
-- Developers use dev settings, QA uses staging settings
-- No need to share production credentials with entire team
-
-**Simple Deployment**
-- Export flow once, works in any environment
-- Just point to appropriate vault-config node
-
-**Configuration Tracking**
-- Each environment's settings clearly defined in one place
-- Easy to compare what differs between environments
-
-**No Code Changes**
-- Switch environments by changing configuration reference only
-- Business logic remains unchanged and testable
-
-### Practical Workflow Example
-
-Here's a real-world workflow showing how a team might use multiple configuration sets:
-
-#### Initial Setup
-
-**Developer creates three vault-config nodes:**
-
-1. **"Development Vault"**
-```
-apiService:
-  - baseUrl: "http://localhost:8080"
-  - apiKey: "dev_test_key"
-  - logLevel: "debug"
-database:
-  - host: "localhost"
-  - database: "myapp_dev"
-smtp:
-  - enabled: false  // Don't send real emails
-  - host: "localhost"
-```
-
-2. **"Staging Vault"**
-```
-apiService:
-  - baseUrl: "https://staging-api.company.com"
-  - apiKey: "stg_abc123xyz"
-  - logLevel: "info"
-database:
-  - host: "staging-db.company.com"
-  - database: "myapp_staging"
-smtp:
-  - enabled: true
-  - host: "smtp-relay.company.com"
-```
-
-3. **"Production Vault"**
-```
-apiService:
-  - baseUrl: "https://api.company.com"
-  - apiKey: "prod_key_secure_789"
-  - logLevel: "warn"
-database:
-  - host: "prod-db-cluster.company.com"
-  - database: "myapp_production"
-smtp:
-  - enabled: true
-  - host: "smtp.company.com"
-```
-
-#### Development Phase
-
-1. Developer creates flow using "Development Vault"
-2. All vault nodes point to "Development Vault"
-3. Developer tests against local services
-4. Flow works with test data, debug logging enabled
-5. No production services are touched
-
-#### Staging/QA Phase
-
-1. Developer exports flow (or commits to git)
-2. QA imports flow to staging Node-RED instance
-3. QA changes all vault node references from "Development Vault" to "Staging Vault"
-4. Deploy
-5. Flow now runs against staging services automatically
-6. QA validates with staging data
-
-#### Production Deployment
-
-1. After QA approval, DevOps exports the validated flow
-2. Import to production Node-RED instance
-3. Change vault node references from "Staging Vault" to "Production Vault"
-4. Deploy
-5. Flow runs in production with production credentials
-6. **Zero code changes were made** - only configuration references changed
-
-#### Result
-
-- **Same Flow Logic**: Business logic tested in dev is identical to production
-- **Different Execution**: Each environment uses appropriate services and credentials
-- **Safe Development**: Developers never need production credentials
-- **Easy Rollback**: Switch back to staging vault for testing if issues arise
-- **Audit Trail**: Clear separation of what config is used in each environment
+Same flow logic, different configuration - no code changes needed.
 
 ## Security
 
