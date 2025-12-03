@@ -1,9 +1,9 @@
 /**
- * Node-RED Contrib Config Vault
+ * Node-RED Contrib Settings Vault
  * 
  * This module provides two node types:
- * 1. vault-config: Configuration node for storing encrypted credentials
- * 2. vault: Runtime node for retrieving specific credentials
+ * 1. vault-config: Configuration node for storing encrypted settings
+ * 2. vault: Runtime node for retrieving specific settings
  */
 
 module.exports = function(RED) {

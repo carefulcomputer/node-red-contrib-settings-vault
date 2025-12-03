@@ -1,11 +1,11 @@
-# node-red-contrib-config-vault
+# node-red-contrib-settings-vault
 
-A Node-RED module for centralized configuration management with encrypted storage. Store credentials, API endpoints, database settings, feature flags, and any other configuration values in one secure location and reuse them across multiple flows.
+A Node-RED module for centralized settings management with encrypted storage. Store credentials, API endpoints, database settings, feature flags, and any other configuration values in one secure location and reuse them across multiple flows.
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Why Use Config Vault](#why-use-config-vault)
+- [Why Use Settings Vault](#why-use-settings-vault)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Use Cases](#use-cases)
@@ -46,7 +46,7 @@ All values are encrypted using Node-RED's built-in credential encryption mechani
 
 The vault runtime node is what you place in your flows to retrieve values. You configure it by specifying which folder (group) to open, which paper (property) to read, and where to put that value (in `msg`, `flow`, or `global` context). When a message passes through the vault node, it automatically retrieves the configured values from the drawer and makes them available to the rest of your flow.
 
-## Why Use Config Vault
+## Why Use Settings Vault
 
 - **Single Source of Truth**: All configuration in one place - change once, affects all flows using it
 - **Encrypted Storage**: Uses Node-RED's built-in credential encryption with no external dependencies
@@ -61,14 +61,14 @@ The vault runtime node is what you place in your flows to retrieve values. You c
 
 ```bash
 cd ~/.node-red
-npm install /path/to/node-red-contrib-config-vault
+npm install /path/to/node-red-contrib-settings-vault
 ```
 
 ### From npm (when published)
 
 ```bash
 cd ~/.node-red
-npm install node-red-contrib-config-vault
+npm install node-red-contrib-settings-vault
 ```
 
 After installation, restart Node-RED to load the new nodes.
