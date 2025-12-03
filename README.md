@@ -134,33 +134,35 @@ After installation, restart Node-RED to load the new nodes.
 
 ### 1. Create a Vault Configuration
 
+A vault stores your configuration values organized by groups. Each group contains related settings.
+
 1. Open Node-RED editor
 2. Go to menu (three horizontal lines) → Configuration nodes
 3. Click "Add" and select "vault-config"
-4. Give it a descriptive name (e.g., "Production Settings")
-5. Click "Add Group" and name it (e.g., "apiService")
-6. Add properties for that group:
-   - baseUrl (type: str): "https://api.production.com"
-   - apiKey (type: password): "your-api-key"
-   - timeout (type: num): 30000
-   - retryEnabled (type: bool): true
+4. Give it a meaningful name that describes this set of settings
+5. Click "Add Group" and name it based on what settings it contains (e.g., name it "apiService" if storing API-related settings)
+6. Add properties within that group - each property has a name, type, and value
 7. Click "Update" to save
+
+**Example:** If you need to store API settings, you might create a group called "apiService" with properties like `baseUrl`, `apiKey`, and `timeout`.
 
 ### 2. Use in Your Flow
 
+The vault node retrieves specific values from your vault and makes them available in your flow.
+
 1. Drag the "vault" node into your flow
 2. Double-click to configure
-3. Select your vault config from the dropdown (e.g., "Production Settings")
-4. Configure what to retrieve (you'll see one row ready to fill):
-   - **Group**: Select "apiService" from dropdown
-   - **Property**: Select "apiKey" from dropdown
-   - **Output**: Select "msg" from dropdown, then type "apiKey" in the text field
+3. Select which vault configuration to use
+4. Configure what to retrieve (one row appears by default):
+   - **Group**: Select which group contains the value you need
+   - **Property**: Select which specific value from that group
+   - **Output**: Choose where to store it (`msg`, `flow`, or `global`) and enter the property name
 5. Click "Done" to save
 6. Deploy your flow
 
-Now when messages pass through this vault node, `msg.apiKey` will automatically be populated with your API key.
+When messages pass through the vault node, the configured values will be automatically populated.
 
-**Tip:** Click "Add Property" button to retrieve multiple values in one node.
+**Tip:** Add multiple rows to retrieve several values at once.
 
 ## Detailed Usage
 
@@ -170,7 +172,9 @@ The `vault-config` node is where you define and store all your configuration val
 
 #### Structure
 
-Configuration values are organized hierarchically by groups. Each group contains related settings:
+You can store multiple groups of settings in a single vault. Each group contains related properties.
+
+**Example:** A vault named "Production Settings" could contain separate groups for different services:
 
 ```
 Vault: "Production Settings"
@@ -210,13 +214,6 @@ Vault: "Production Settings"
 | `json` | JSON object/array | Complex configurations, nested data |
 | `date` | Timestamp | Expiration dates, schedule times |
 
-#### UI Features
-
-- **Collapse/Expand**: Groups are collapsed by default for easy navigation
-- **Clone**: Duplicate groups to create variations (e.g., dev, staging, prod)
-- **Validation**: Real-time validation with visual feedback
-- **Simple Form Inputs**: Structured fields with automatic type handling
-
 ### Runtime Node
 
 The `vault` node retrieves specific property values from your vault and makes them available in your flow.
@@ -225,69 +222,15 @@ The `vault` node retrieves specific property values from your vault and makes th
 
 Each row in the vault node configuration specifies:
 
-1. **Group** (dropdown): Which credential group to use
+1. **Group** (dropdown): Which group to retrieve from
 2. **Property** (dropdown): Which specific value to retrieve
 3. **Output** (context selector): Where to store the value
    - Select context type: `msg`, `flow`, or `global`
-   - Enter property name (e.g., `apiKey`, `dbHost`)
+   - Enter property name
 
-#### Context Options
+**Example:** To retrieve an API key from the "apiService" group and store it in `msg.apiKey`, you would select Group: "apiService", Property: "apiKey", Output: msg.apiKey.
 
-**msg Context**
-- Stores value on the message object
-- Scoped to single message
-- Use for: Per-request data, HTTP headers, temporary values
-
-```javascript
-Group: apiService, Property: apiKey
-Context: msg, Name: apiKey
-Result: msg.apiKey = "sk_live_abc123"
-```
-
-**flow Context**
-- Stores value in flow context
-- Shared across all nodes in the same flow tab
-- Persists between messages
-- Use for: Shared configuration, cached values, flow-wide settings
-
-```javascript
-Group: apiService, Property: baseUrl
-Context: flow, Name: apiUrl
-Result: flow.apiUrl = "https://api.example.com"
-```
-
-**global Context**
-- Stores value in global context
-- Shared across all flows and tabs
-- Persists between messages
-- Use for: System-wide configuration, shared database connections
-
-```javascript
-Group: database, Property: host
-Context: global, Name: dbHost
-Result: global.dbHost = "db.example.com"
-```
-
-#### Multiple Retrievals
-
-You can retrieve multiple properties in a single vault node by clicking "Add Property" to add more rows. This is more efficient than using multiple vault nodes.
-
-Example: Configuring 4 rows to retrieve different values:
-
-| Row | Group | Property | Output Context | Output Name |
-|-----|-------|----------|----------------|-------------|
-| 1 | apiService | username | msg | username |
-| 2 | apiService | apiKey | msg | apiKey |
-| 3 | apiService | baseUrl | flow | apiUrl |
-| 4 | database | host | global | dbHost |
-
-Result when message passes through:
-```javascript
-msg.username = "alice"
-msg.apiKey = "sk_live_abc123"
-flow.apiUrl = "https://api.example.com"
-global.dbHost = "db.example.com"
-```
+You can add multiple rows to retrieve several values at once.
 
 ## Use Cases
 
