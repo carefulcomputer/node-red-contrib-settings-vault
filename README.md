@@ -206,7 +206,6 @@ Vault: "Production Settings"
 | `num` | Number | Ports, timeouts, IDs, counts |
 | `bool` | Boolean | Feature flags, enable/disable settings |
 | `json` | JSON object/array | Complex configurations, nested data |
-| `bin` | Buffer | Binary data, certificates, keys |
 | `date` | Timestamp | Expiration dates, schedule times |
 
 #### UI Features

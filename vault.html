@@ -3,7 +3,8 @@
     RED.nodes.registerType('vault-config', {
         category: 'config',
         defaults: {
-            name: { value: '', required: true }
+            name: { value: '', required: true },
+            structure: { value: {} }
         },
         credentials: {
             store: { type: 'text' }
@@ -204,7 +205,6 @@
                 if (typeof value === 'number') return 'num';
                 if (typeof value === 'boolean') return 'bool';
                 if (value instanceof Date) return 'date';
-                if (Buffer.isBuffer(value)) return 'bin';
                 if (typeof value === 'object') return 'json';
                 return 'str';
             }
@@ -284,7 +284,6 @@
                         'num',
                         'bool',
                         'json',
-                        'bin',
                         'date'
                     ],
                     default: fieldType || 'str',
@@ -487,10 +486,6 @@
                                 // TypedInput for date returns timestamp
                                 fieldValue = Number(fieldValue);
                                 break;
-                            case 'bin':
-                                // Store as base64 string for Buffer
-                                fieldValue = fieldValue;
-                                break;
                             case 'password':
                             case 'str':
                             default:
@@ -517,6 +512,14 @@
             if (hasError) {
                 return false;
             }
+            
+            // Auto-generate structure from vault (group names and property names)
+            // This allows vault runtime nodes to populate dropdowns without loading credentials
+            const structure = {};
+            Object.keys(vault).forEach(function(groupName) {
+                structure[groupName] = Object.keys(vault[groupName]);
+            });
+            this.structure = structure;
             
             // Save vault as JSON string
             $('#node-config-input-store').val(JSON.stringify(vault));
@@ -568,7 +571,7 @@
                 <li><strong>Properties:</strong> Multiple properties with:
                     <ul>
                         <li><strong>Property Name:</strong> Setting name (e.g., "baseUrl", "timeout", "enabled")</li>
-                        <li><strong>Type:</strong> Data type (str, password, num, bool, json, bin, date)</li>
+                        <li><strong>Type:</strong> Data type (str, password, num, bool, json, date)</li>
                         <li><strong>Value:</strong> The configuration value (all types encrypted at rest)</li>
                     </ul>
                 </li>
@@ -578,12 +581,11 @@
     
     <h3>Supported Types</h3>
     <ul>
-        <li><strong>str</strong> - Text values (URLs, hostnames, usernames, tokens)</li>
+        <li><strong>str</strong> - Text values (URLs, hostnames, usernames, tokens, base64 encoded data)</li>
         <li><strong>password</strong> - Masked input for passwords, API keys, secrets</li>
         <li><strong>num</strong> - Numbers (ports, timeouts, thresholds, limits)</li>
         <li><strong>bool</strong> - Boolean flags (enabled/disabled, feature flags)</li>
         <li><strong>json</strong> - Complex data (nested objects, arrays, configurations)</li>
-        <li><strong>bin</strong> - Binary data (certificates, encoded keys)</li>
         <li><strong>date</strong> - Timestamps (expiration dates, schedule times)</li>
     </ul>
     <p><strong>Note:</strong> All values are encrypted at rest using Node-RED's built-in encryption. No external dependencies required. Use <strong>password</strong> type for masked editor input.</p>
@@ -611,7 +613,7 @@
         <li>For each property, enter:
             <ul>
                 <li>Property name (e.g., "username", "password", "port")</li>
-                <li>Type from dropdown (str, password, num, bool, json, bin, date)</li>
+                <li>Type from dropdown (str, password, num, bool, json, date)</li>
                 <li>Value (visible in editor, encrypted when saved)</li>
             </ul>
         </li>
@@ -668,19 +670,17 @@
                 if (!vaultId) {
                     vaultId = $('#node-input-vault').val() || node.vault;
                 }
-                if (!vaultId) return [];
+                if (!vaultId) {
+                    return [];
+                }
                 
                 const vaultNode = RED.nodes.node(vaultId);
-                if (!vaultNode || !vaultNode.credentials || !vaultNode.credentials.store) {
+                if (!vaultNode || !vaultNode.structure) {
                     return [];
                 }
                 
-                try {
-                    const vault = JSON.parse(vaultNode.credentials.store);
-                    return Object.keys(vault);
-                } catch (err) {
-                    return [];
-                }
+                // Return group names from structure
+                return Object.keys(vaultNode.structure);
             }
             
             // Load available properties for a given group
@@ -689,22 +689,17 @@
                 if (!vaultId) {
                     vaultId = $('#node-input-vault').val() || node.vault;
                 }
-                if (!vaultId || !groupName) return [];
+                if (!vaultId || !groupName) {
+                    return [];
+                }
                 
                 const vaultNode = RED.nodes.node(vaultId);
-                if (!vaultNode || !vaultNode.credentials || !vaultNode.credentials.store) {
+                if (!vaultNode || !vaultNode.structure) {
                     return [];
                 }
                 
-                try {
-                    const vault = JSON.parse(vaultNode.credentials.store);
-                    if (vault[groupName] && typeof vault[groupName] === 'object') {
-                        return Object.keys(vault[groupName]);
-                    }
-                    return [];
-                } catch (err) {
-                    return [];
-                }
+                // Return property names for the specified group from structure
+                return vaultNode.structure[groupName] || [];
             }
             
             // Create group dropdown
@@ -713,9 +708,16 @@
                 const groups = loadAvailableGroups(vaultId);
                 
                 select.append($('<option>', { value: '' }).text('-- select group --'));
-                groups.forEach(group => {
-                    select.append($('<option>', { value: group, selected: group === selectedGroup }).text(group));
-                });
+                
+                // If we have a selected group but no groups loaded, add the selected group anyway
+                // (This can happen if structure isn't available yet)
+                if (selectedGroup && groups.length === 0) {
+                    select.append($('<option>', { value: selectedGroup, selected: true }).text(selectedGroup));
+                } else {
+                    groups.forEach(group => {
+                        select.append($('<option>', { value: group, selected: group === selectedGroup }).text(group));
+                    });
+                }
                 
                 return select;
             }
@@ -726,9 +728,16 @@
                 const properties = loadPropertiesForGroup(groupName, vaultId);
                 
                 select.append($('<option>', { value: '' }).text('-- select property --'));
-                properties.forEach(prop => {
-                    select.append($('<option>', { value: prop, selected: prop === selectedProperty }).text(prop));
-                });
+                
+                // If we have a selected property but no properties loaded, add the selected property anyway
+                // (This can happen if structure isn't available yet)
+                if (selectedProperty && properties.length === 0) {
+                    select.append($('<option>', { value: selectedProperty, selected: true }).text(selectedProperty));
+                } else {
+                    properties.forEach(prop => {
+                        select.append($('<option>', { value: prop, selected: prop === selectedProperty }).text(prop));
+                    });
+                }
                 
                 return select;
             }
@@ -806,9 +815,13 @@
                         outputInput.typedInput('value', property || '');
                     }
                     
-                    // Track manual modifications
+                    // Track manual modifications and trigger validation
                     outputInput.on('change', function() {
                         $(this).data('userModified', true);
+                        // Trigger validation check
+                        if (node._validateAndUpdateButton) {
+                            node._validateAndUpdateButton();
+                        }
                     });
                     
                     // Auto-fill output when property is selected
@@ -829,6 +842,10 @@
                 }).html('<i class="fa fa-times"></i>').on('click', function() {
                     row.remove();
                     updateDeleteButtons();
+                    // Trigger validation after deletion
+                    if (node._validateAndUpdateButton) {
+                        node._validateAndUpdateButton();
+                    }
                 });
                 
                 row.append(deleteBtn);
@@ -853,11 +870,24 @@
             $('#add-property-btn').on('click', function() {
                 const currentVaultId = $('#node-input-vault').val() || node.vault;
                 addPropertyRow('', '', '', currentVaultId);
+                // Trigger validation after adding row
+                setTimeout(function() {
+                    if (node._validateAndUpdateButton) {
+                        node._validateAndUpdateButton();
+                    }
+                }, 50);
             });
             
-            // Reload properties when vault changes
-            $('#node-input-vault').on('change', function() {
-                const selectedVaultId = $(this).val();
+            // Function to load properties for current vault
+            function loadPropertiesForCurrentVault() {
+                const selectedVaultId = $('#node-input-vault').val() || node.vault;
+                
+                if (!selectedVaultId) {
+                    // No vault selected, add one empty row
+                    addPropertyRow('', '', '', null);
+                    return;
+                }
+                
                 // Clear and reload rows
                 $('#properties-list').empty();
                 propertyRowCount = 0;
@@ -869,19 +899,79 @@
                 } else {
                     addPropertyRow('', '', '', selectedVaultId);
                 }
+            }
+            
+            // Reload properties when vault changes
+            $('#node-input-vault').on('change', function() {
+                loadPropertiesForCurrentVault();
             });
             
-            // Load existing properties immediately using node.vault directly
-            if (node.properties && node.properties.length > 0) {
-                node.properties.forEach(prop => {
-                    addPropertyRow(prop.group, prop.property, prop.output, node.vault);
-                });
+            // Load properties immediately if vault is already set, otherwise wait for change event
+            if (node.vault) {
+                loadPropertiesForCurrentVault();
             } else {
-                // Add one empty row by default
-                addPropertyRow('', '', '', node.vault);
+                // New node, add one empty row
+                addPropertyRow('', '', '', null);
             }
+            
+            // Validation function that updates Done button state
+            node._validateAndUpdateButton = function() {
+                const doneButton = $('#node-dialog-ok');
+                let validPropertyCount = 0;
+                let hasPartialRow = false;
+                
+                $('#properties-list .property-row').each(function() {
+                    const row = $(this);
+                    const group = row.find('select').eq(0).val();
+                    const property = row.find('select').eq(1).val();
+                    const outputInput = row.find('.property-output');
+                    const outputValue = outputInput.length > 0 ? outputInput.typedInput('value') : '';
+                    
+                    // Check if row has any value filled
+                    const hasAnyValue = group || property || outputValue;
+                    
+                    if (hasAnyValue) {
+                        // Check if all fields are filled
+                        if (group && property && outputValue) {
+                            validPropertyCount++;
+                        } else {
+                            hasPartialRow = true;
+                        }
+                    }
+                });
+                
+                // Enable button only if we have at least one valid property and no partial rows
+                const isValid = validPropertyCount > 0 && !hasPartialRow;
+                
+                if (isValid) {
+                    doneButton.prop('disabled', false).removeClass('disabled');
+                } else {
+                    doneButton.prop('disabled', true).addClass('disabled');
+                }
+                
+                return isValid;
+            };
+            
+            // Attach validation to all select changes
+            $('#properties-list').on('change', 'select', function() {
+                node._validateAndUpdateButton();
+            });
+            
+            // Initial validation
+            setTimeout(function() {
+                node._validateAndUpdateButton();
+            }, 100);
+        },
+        oneditcancel: function() {
+            // Remove validation event handlers
+            $('#properties-list').off('change');
+            // Clean up validation function
+            delete this._validateAndUpdateButton;
+            // Re-enable Done button
+            $('#node-dialog-ok').prop('disabled', false).removeClass('disabled');
         },
         oneditsave: function() {
+            // Collect valid properties
             const properties = [];
             
             $('#properties-list .property-row').each(function() {
@@ -889,22 +979,24 @@
                 const group = row.find('select').eq(0).val();
                 const property = row.find('select').eq(1).val();
                 const outputInput = row.find('.property-output');
+                const outputValue = outputInput.length > 0 ? outputInput.typedInput('value') : '';
                 
-                if (group && property && outputInput.length > 0) {
+                if (group && property && outputValue) {
                     const outputType = outputInput.typedInput('type');
-                    const outputValue = outputInput.typedInput('value');
-                    
-                    if (outputValue) {
-                        properties.push({
-                            group: group,
-                            property: property,
-                            output: outputType + '.' + outputValue
-                        });
-                    }
+                    properties.push({
+                        group: group,
+                        property: property,
+                        output: outputType + '.' + outputValue
+                    });
                 }
             });
             
             this.properties = properties;
+            
+            // Remove validation event handlers
+            $('#properties-list').off('change');
+            // Clean up validation function
+            delete this._validateAndUpdateButton;
         }
     });
 </script>
