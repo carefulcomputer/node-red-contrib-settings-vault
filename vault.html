@@ -858,15 +858,17 @@
                 }
             });
             
-            // Load existing properties
-            if (node.properties && node.properties.length > 0) {
-                node.properties.forEach(prop => {
-                    addPropertyRow(prop.group, prop.property, prop.output);
-                });
-            } else {
-                // Add one empty row by default
-                addPropertyRow('', '', '');
-            }
+            // Load existing properties after a short delay to ensure vault dropdown is initialized
+            setTimeout(function() {
+                if (node.properties && node.properties.length > 0) {
+                    node.properties.forEach(prop => {
+                        addPropertyRow(prop.group, prop.property, prop.output);
+                    });
+                } else {
+                    // Add one empty row by default
+                    addPropertyRow('', '', '');
+                }
+            }, 0);
         },
         oneditsave: function() {
             const properties = [];
