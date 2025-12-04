@@ -21,6 +21,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Upgrade npm to support OIDC
+        run: npm install -g npm@latest
+
       - name: Get package version
         id: package-version
         run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
