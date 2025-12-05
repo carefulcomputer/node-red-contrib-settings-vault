@@ -90,13 +90,13 @@ After installation, restart Node-RED to load the new nodes.
 | Type | Description | Use Case |
 |------|-------------|----------|
 | `str` | String/text | Usernames, hostnames, URLs, tokens |
-| `password` | Masked string | Passwords, secrets, API keys (hidden in editor) |
+| `credential` | Masked string | Passwords, secrets, API keys (hidden in editor) |
 | `num` | Number | Ports, timeouts, IDs, counts |
 | `bool` | Boolean | Feature flags, enable/disable settings |
 | `json` | JSON object/array | Complex configurations, nested data |
 | `date` | Timestamp | Expiration dates, schedule times |
 
-**Example:** For API settings, create a group "apiService" with properties: `baseUrl` (str), `apiKey` (password), `timeout` (num).
+**Example:** For API settings, create a group "apiService" with properties: `baseUrl` (str), `apiKey` (credential), `timeout` (num).
 
 ### Using in Your Flow
 
@@ -110,6 +110,68 @@ After installation, restart Node-RED to load the new nodes.
 5. Click "Done" and deploy
 
 When messages pass through the vault node, the configured values are automatically retrieved and populated.
+
+### Using in Function Nodes
+
+You can also access vault values directly from function nodes without using vault nodes in your flow.
+
+**Setup:**
+
+```javascript
+// At the top of your function node
+const vault = global.get('vault');
+```
+
+**Basic Usage:**
+
+```javascript
+// Get a single property
+const apiKey = vault('Production Settings')
+    .getGroup('apiService')
+    .getProperty('apiKey');
+
+// Use in your code
+msg.headers = { 'Authorization': 'Bearer ' + apiKey };
+```
+
+**Advanced Usage:**
+
+```javascript
+const vault = global.get('vault');
+
+// Get entire group and access properties directly
+const db = vault('Production Settings').getGroup('database');
+msg.connection = `${db.host}:${db.port}`;
+
+// Destructure multiple properties
+const { apiKey, baseUrl, timeout } = vault('Prod').getGroup('apiService');
+msg.url = baseUrl + '/endpoint';
+
+// Mix explicit getProperty() for required values, direct access for optional
+const api = vault('Prod').getGroup('apiService');
+const required = api.getProperty('apiKey');  // Throws error if missing
+const optional = api.retryCount || 3;         // Safe default if undefined
+
+// Get clean copy for JSON serialization
+const config = vault('Prod').getGroup('features').getAll();
+msg.payload = config;
+```
+
+**Error Handling:**
+
+```javascript
+try {
+    const vault = global.get('vault');
+    const apiKey = vault('Production Settings')
+        .getGroup('apiService')
+        .getProperty('apiKey');
+} catch (err) {
+    node.error('Failed to get vault value: ' + err.message);
+    return null;
+}
+```
+
+**Performance Tip:** Cache the vault reference at the top of your function node for better performance with multiple access calls.
 
 ## Use Cases
 
@@ -187,7 +249,7 @@ All configuration values stored in the vault are encrypted using Node-RED's buil
 **For Security:**
 1. **Backups**: Always backup both `flows.json` and `flows_cred.json` together
 2. **Access Control**: Enable Node-RED's admin authentication to prevent unauthorized access
-3. **Password Type**: Use the "password" type for sensitive values to mask them in the editor
+3. **Credential Type**: Use the "credential" type for sensitive values to mask them in the editor
 4. **Separate Environments**: Use different `credentialSecret` values for dev, staging, and production
 
 **For Configuration Management:**
@@ -245,6 +307,26 @@ Additionally, the node displays a red status indicator with a brief error descri
 2. Use debug nodes after the vault node to inspect output
 3. Verify vault configuration in the Configuration nodes panel
 4. Check that groups and property names match exactly (case-sensitive)
+
+## Version 2.0 Breaking Changes
+
+**Data Format Change**: Version 2.0 introduces a new internal storage format that preserves type metadata for all properties. This ensures that credential-type fields remain properly masked in the editor when reopening vault configurations.
+
+**What Changed**:
+- All property values now include type information in storage
+- Credential fields (previously "password" type, now "credential") maintain their masked state across save/load cycles
+- The type is now Node-RED's standard "credential" (matching environment variables) instead of custom "password"
+
+**Migration**:
+- ✅ **Automatic**: Existing vaults load correctly and are automatically migrated to the new format on first save
+- ✅ **No action required**: Your existing configurations will continue working
+- ⚠️ **One-way upgrade**: After saving a vault in v2.0, it cannot be read by earlier versions
+- 📝 **Recommendation**: Backup your `flows.json` and `flows_cred.json` before upgrading
+
+**Benefits**:
+- Credential fields now properly show as masked when editing vault configurations
+- Type consistency across all properties
+- Standard Node-RED terminology throughout
 
 ## Troubleshooting
 

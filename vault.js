@@ -4,9 +4,17 @@
  * This module provides two node types:
  * 1. vault-config: Configuration node for storing encrypted settings
  * 2. vault: Runtime node for retrieving specific settings
+ * 
+ * Additionally, provides a global function API for direct access from function nodes:
+ * - Access via: const vault = global.get('vault');
+ * - Usage: vault('VaultName').getGroup('groupName').getProperty('property')
  */
 
 module.exports = function(RED) {
+    
+    // Vault registry to track all active vault-config nodes
+    // Key: node ID, Value: vault node instance
+    const vaultRegistry = {};
     
     /**
      * Configuration Node: vault-config
@@ -19,20 +27,20 @@ module.exports = function(RED) {
      * Data Structure:
      *   {
      *     "groupName": {
-     *       "property1": "value1",
-     *       "property2": "value2"
+     *       "property1": {"value": "value1", "type": "str"},
+     *       "property2": {"value": "value2", "type": "cred"}
      *     }
      *   }
      * 
      * Example:
      *   {
      *     "apiService": {
-     *       "username": "alice",
-     *       "apiKey": "sk_live_abc123"
+     *       "username": {"value": "alice", "type": "str"},
+     *       "apiKey": {"value": "sk_live_abc123", "type": "cred"}
      *     },
      *     "database": {
-     *       "host": "db.example.com",
-     *       "port": 5432
+     *       "host": {"value": "db.example.com", "type": "str"},
+     *       "port": {"value": 5432, "type": "num"}
      *     }
      *   }
      */
@@ -84,6 +92,14 @@ module.exports = function(RED) {
             // Return the credential object for this group
             return entry;
         };
+        
+        // Register this vault in the global registry
+        vaultRegistry[this.id] = this;
+        
+        // Cleanup: Unregister vault when node is closed
+        this.on('close', function() {
+            delete vaultRegistry[this.id];
+        });
     }
     
     // Register the configuration node
@@ -93,6 +109,95 @@ module.exports = function(RED) {
             store: { type: 'text' }
         }
     });
+    
+    
+    /**
+     * Global Vault Function API
+     * 
+     * Provides direct access to vault values from function nodes using a fluent interface.
+     * 
+     * Access pattern:
+     *   const vault = global.get('vault');
+     *   const value = vault('VaultName').getGroup('groupName').getProperty('property');
+     * 
+     * Alternative patterns:
+     *   const group = vault('VaultName').getGroup('groupName');
+     *   const value = group.property;  // Direct property access
+     *   const { prop1, prop2 } = vault('VaultName').getGroup('groupName');  // Destructuring
+     *   const all = vault('VaultName').getGroup('groupName').getAll();  // Clean copy
+     */
+    RED.settings.functionGlobalContext = RED.settings.functionGlobalContext || {};
+    RED.settings.functionGlobalContext.vault = function(vaultName) {
+        // Find vault by name in the registry
+        let vaultNode = null;
+        for (const id in vaultRegistry) {
+            if (vaultRegistry[id].name === vaultName) {
+                vaultNode = vaultRegistry[id];
+                break;
+            }
+        }
+        
+        // Throw error if vault not found
+        if (!vaultNode) {
+            throw new Error('Vault "' + vaultName + '" not found');
+        }
+        
+        // Return vault accessor object with getGroup method
+        return {
+            getGroup: function(groupName) {
+                // Get group data from vault
+                const groupData = vaultNode.getCredentialsForKey(groupName);
+                
+                // Throw error if group not found
+                if (!groupData) {
+                    throw new Error('Group "' + groupName + '" not found in vault "' + vaultName + '"');
+                }
+                
+                // Create result object with group data
+                const result = {};
+                
+                // Copy all properties from groupData, extracting values
+                for (const prop in groupData) {
+                    if (groupData.hasOwnProperty(prop)) {
+                        const propertyData = groupData[prop];
+                        
+                        // Handle both new format ({value, type}) and legacy format (raw value)
+                        if (propertyData && 
+                            typeof propertyData === 'object' && 
+                            propertyData.hasOwnProperty('value') && 
+                            propertyData.hasOwnProperty('type')) {
+                            // New format - extract value
+                            result[prop] = propertyData.value;
+                        } else {
+                            // Legacy format - use raw value
+                            result[prop] = propertyData;
+                        }
+                    }
+                }
+                
+                // Add getProperty method
+                result.getProperty = function(property) {
+                    if (!result.hasOwnProperty(property)) {
+                        throw new Error('Property "' + property + '" not found in group "' + groupName + '"');
+                    }
+                    return result[property];
+                };
+                
+                // Add getAll method that returns clean copy without methods
+                result.getAll = function() {
+                    const clean = {};
+                    for (const prop in result) {
+                        if (result.hasOwnProperty(prop) && typeof result[prop] !== 'function') {
+                            clean[prop] = result[prop];
+                        }
+                    }
+                    return clean;
+                };
+                
+                return result;
+            }
+        };
+    };
     
     
     /**
@@ -117,8 +222,9 @@ module.exports = function(RED) {
      *   1. Validate configuration (vault ref, properties array)
      *   2. For each configured property:
      *      a. Retrieve group credentials from vault
-     *      b. Extract specific property value
-     *      c. Set value to configured context (msg/flow/global)
+     *      b. Check if property exists in group
+     *      c. Extract specific property value (handles both new and legacy formats)
+     *      d. Set value to configured context (msg/flow/global)
      *   3. Forward message with all values set
      * 
      * Error Handling:
@@ -194,10 +300,27 @@ module.exports = function(RED) {
                         return;
                     }
                     
-                    // Step 3: Set the property value to the configured context
+                    // Step 3: Extract value from the property data
+                    // New format: {value: actualValue, type: 'str'|'cred'|'num'|'bool'|'json'|'date'}
+                    // Legacy format: just the raw value (for backward compatibility)
+                    const propertyData = groupCredentials[prop.property];
+                    let value;
+                    
+                    // New format must have BOTH 'value' and 'type' properties
+                    // This prevents false positives with legacy JSON objects
+                    if (propertyData && 
+                        typeof propertyData === 'object' && 
+                        propertyData.hasOwnProperty('value') && 
+                        propertyData.hasOwnProperty('type')) {
+                        // New format with type metadata
+                        value = propertyData.value;
+                    } else {
+                        // Legacy format - use raw value
+                        value = propertyData;
+                    }
+                    
+                    // Step 4: Set the property value to the configured context
                     try {
-                        const value = groupCredentials[prop.property];
-                        
                         // Parse output format: "msg.username", "flow.apiKey", "global.dbHost"
                         const outputParts = prop.output.split('.');
                         
