@@ -124,8 +124,11 @@
                         const fieldValue = fieldRow.find('.vault-field-value').typedInput('value');
                         
                         if (fieldName) {
-                            // Store raw value
-                            fields[fieldName] = fieldValue;
+                            // Store value with type metadata
+                            fields[fieldName] = {
+                                value: fieldValue,
+                                type: fieldType
+                            };
                         }
                     });
                     
@@ -173,8 +176,9 @@
                 if (credentialsObj && typeof credentialsObj === 'object') {
                     for (const fieldName in credentialsObj) {
                         if (credentialsObj.hasOwnProperty(fieldName)) {
-                            const value = credentialsObj[fieldName];
-                            const type = detectType(value);
+                            const fieldData = credentialsObj[fieldName];
+                            const type = detectType(fieldData);
+                            const value = extractValue(fieldData);
                             addFieldRow(entryId, fieldsList, fieldName, type, value);
                         }
                     }
@@ -199,14 +203,40 @@
                 }
             }
             
-            // Detect type from value
-            function detectType(value) {
+            // Detect type from stored field data
+            // New format: {value: actualValue, type: 'str'|'cred'|'num'|'bool'|'json'|'date'}
+            // Legacy format: just the raw value (for backward compatibility detection only)
+            function detectType(fieldData) {
+                // New format must have BOTH 'value' and 'type' properties
+                // This prevents false positives with legacy JSON objects that happen to have 'type' property
+                if (fieldData && 
+                    typeof fieldData === 'object' && 
+                    fieldData.hasOwnProperty('type') && 
+                    fieldData.hasOwnProperty('value')) {
+                    return fieldData.type;
+                }
+                
+                // Legacy format - detect from value (for old vaults)
+                const value = fieldData;
                 if (value === null || value === undefined) return 'str';
                 if (typeof value === 'number') return 'num';
                 if (typeof value === 'boolean') return 'bool';
                 if (value instanceof Date) return 'date';
                 if (typeof value === 'object') return 'json';
                 return 'str';
+            }
+            
+            // Extract value from stored field data
+            function extractValue(fieldData) {
+                // New format must have BOTH 'value' and 'type' properties
+                if (fieldData && 
+                    typeof fieldData === 'object' && 
+                    fieldData.hasOwnProperty('value') && 
+                    fieldData.hasOwnProperty('type')) {
+                    return fieldData.value;
+                }
+                // Legacy format - return as-is
+                return fieldData;
             }
             
             // Add a credential field within an entry
@@ -271,35 +301,11 @@
                 fieldRow.append(fieldNameLabel).append(fieldNameInput).append(valueInputContainer).append(validationIcon).append(deleteFieldBtn);
                 fieldsList.append(fieldRow);
                 
-                // Initialize TypedInput widget with password type
+                // Initialize TypedInput widget with cred type for masked inputs
                 valueInput.typedInput({
-                    types: [
-                        'str',
-                        {
-                            value: 'password',
-                            label: 'password',
-                            icon: 'fa fa-lock',
-                            showLabel: false
-                        },
-                        'num',
-                        'bool',
-                        'json',
-                        'date'
-                    ],
+                    types: ['str', 'cred', 'num', 'bool', 'json', 'date'],
                     default: fieldType || 'str',
                     typeField: '#' + valueInput.attr('id') + '-type'
-                });
-                
-                // For password type, set input to password type
-                valueInput.on('change', function(event, type) {
-                    if (type === true) return; // Skip initial trigger
-                    const currentType = valueInput.typedInput('type');
-                    const inputElement = valueInput.siblings('input.red-ui-typedInput-input');
-                    if (currentType === 'password') {
-                        inputElement.attr('type', 'password');
-                    } else {
-                        inputElement.attr('type', 'text');
-                    }
                 });
                 
                 // Set initial value and type
@@ -486,14 +492,18 @@
                                 // TypedInput for date returns timestamp
                                 fieldValue = Number(fieldValue);
                                 break;
-                            case 'password':
+                            case 'cred':
                             case 'str':
                             default:
-                                // Keep as string (password stored same as str, just masked in UI)
+                                // Keep as string (cred stored same as str, just masked in UI)
                                 break;
                         }
                         
-                        credentials[fieldName] = fieldValue;
+                        // Store value with type metadata
+                        credentials[fieldName] = {
+                            value: fieldValue,
+                            type: fieldType
+                        };
                     } catch (err) {
                         RED.notify('Invalid value for field "' + fieldName + '" in entry "' + key + '": ' + err.message, 'error');
                         hasFieldError = true;
@@ -552,7 +562,7 @@
         <br><br>
         <strong>How it works:</strong> Organize settings into <strong>Groups</strong> (logical groupings) containing <strong>Properties</strong> (individual values).
         <br><br>
-        <strong>Example:</strong> Group "apiService" might contain properties: baseUrl ("https://api.example.com"), apiKey (your key), timeout (30000). Use <strong>password</strong> type for sensitive values to mask them in the editor.
+        <strong>Example:</strong> Group "apiService" might contain properties: baseUrl ("https://api.example.com"), apiKey (your key), timeout (30000). Use <strong>cred</strong> type for sensitive values to mask them in the editor.
     </div>
 </script>
 
@@ -571,7 +581,7 @@
                 <li><strong>Properties:</strong> Multiple properties with:
                     <ul>
                         <li><strong>Property Name:</strong> Setting name (e.g., "baseUrl", "timeout", "enabled")</li>
-                        <li><strong>Type:</strong> Data type (str, password, num, bool, json, date)</li>
+                        <li><strong>Type:</strong> Data type (str, cred, num, bool, json, date)</li>
                         <li><strong>Value:</strong> The configuration value (all types encrypted at rest)</li>
                     </ul>
                 </li>
@@ -582,13 +592,13 @@
     <h3>Supported Types</h3>
     <ul>
         <li><strong>str</strong> - Text values (URLs, hostnames, usernames, tokens, base64 encoded data)</li>
-        <li><strong>password</strong> - Masked input for passwords, API keys, secrets</li>
+        <li><strong>cred</strong> - Masked input for credentials, API keys, secrets</li>
         <li><strong>num</strong> - Numbers (ports, timeouts, thresholds, limits)</li>
         <li><strong>bool</strong> - Boolean flags (enabled/disabled, feature flags)</li>
         <li><strong>json</strong> - Complex data (nested objects, arrays, configurations)</li>
         <li><strong>date</strong> - Timestamps (expiration dates, schedule times)</li>
     </ul>
-    <p><strong>Note:</strong> All values are encrypted at rest using Node-RED's built-in encryption. No external dependencies required. Use <strong>password</strong> type for masked editor input.</p>
+    <p><strong>Note:</strong> All values are encrypted at rest using Node-RED's built-in encryption. No external dependencies required. Use <strong>cred</strong> type for masked editor input.</p>
     
     <h3>Details</h3>
     <p>This node stores all configuration values in a single encrypted field using Node-RED's built-in credential encryption. The vault content is stored in <code>flows_cred.json</code> and never appears in plain text in <code>flows.json</code>.</p>
@@ -597,7 +607,7 @@
     
     <p><strong>Use Cases:</strong></p>
     <ul>
-        <li>Store credentials (usernames, passwords, API keys)</li>
+        <li>Store credentials (usernames, API keys, secrets)</li>
         <li>Manage API endpoints and base URLs</li>
         <li>Configure database connection settings</li>
         <li>Control feature flags and environment settings</li>
@@ -613,8 +623,8 @@
         <li>For each property, enter:
             <ul>
                 <li>Property name (e.g., "username", "password", "port")</li>
-                <li>Type from dropdown (str, password, num, bool, json, date)</li>
-                <li>Value (visible in editor, encrypted when saved)</li>
+                <li>Type from dropdown (str, cred, num, bool, json, date)</li>
+                <li>Value (visible in editor for most types, masked for cred type, encrypted when saved)</li>
             </ul>
         </li>
         <li>Use <strong>"×"</strong> to remove individual properties or <strong>"Delete Group"</strong> for entire groups</li>
@@ -625,7 +635,7 @@
     <p>Group: <code>apiService</code></p>
     <ul>
         <li>Property: <code>baseUrl</code>, Type: <code>str</code>, Value: <code>https://api.production.com</code></li>
-        <li>Property: <code>apiKey</code>, Type: <code>password</code>, Value: <code>sk_live_abc123</code></li>
+        <li>Property: <code>apiKey</code>, Type: <code>cred</code>, Value: <code>sk_live_abc123</code></li>
         <li>Property: <code>timeout</code>, Type: <code>num</code>, Value: <code>30000</code></li>
         <li>Property: <code>retryEnabled</code>, Type: <code>bool</code>, Value: <code>true</code></li>
     </ul>
@@ -638,6 +648,39 @@
         <li>Property: <code>rateLimitPerMinute</code>, Type: <code>num</code>, Value: <code>100</code></li>
         <li>Property: <code>allowedRegions</code>, Type: <code>json</code>, Value: <code>["us-east","eu-west"]</code></li>
     </ul>
+    
+    <h3>Using in Function Nodes</h3>
+    <p>Vault values can be accessed directly from function nodes using the global vault function:</p>
+    
+    <h4>Basic Usage:</h4>
+    <pre>// Get vault function (at top of function node)
+const vault = global.get('vault');
+
+// Access values
+const apiKey = vault('Production Settings')
+    .getGroup('apiService')
+    .getProperty('apiKey');</pre>
+    
+    <h4>Advanced Patterns:</h4>
+    <pre>// Direct property access
+const db = vault('Prod').getGroup('database');
+const connection = db.host + ':' + db.port;
+
+// Destructuring
+const { host, port } = vault('Prod').getGroup('database');
+
+// Get all properties (clean copy)
+const config = vault('Prod').getGroup('apiService').getAll();</pre>
+    
+    <p><strong>Methods:</strong></p>
+    <ul>
+        <li><code>.getGroup(name)</code> - Returns group data object with methods</li>
+        <li><code>.getProperty(name)</code> - Returns single property value (throws error if missing)</li>
+        <li><code>.getAll()</code> - Returns clean copy of all group properties without methods</li>
+        <li>Direct property access - Returns value or undefined (no error)</li>
+    </ul>
+    
+    <p>See the main documentation for complete examples and error handling patterns.</p>
 </script>
 
 
