@@ -301,7 +301,7 @@
                 fieldRow.append(fieldNameLabel).append(fieldNameInput).append(valueInputContainer).append(validationIcon).append(deleteFieldBtn);
                 fieldsList.append(fieldRow);
                 
-                // Initialize TypedInput widget with credential type for masked inputs
+                // Initialize TypedInput widget with cred type for masked inputs
                 valueInput.typedInput({
                     types: ['str', 'cred', 'num', 'bool', 'json', 'date'],
                     default: fieldType || 'str',
@@ -562,7 +562,7 @@
         <br><br>
         <strong>How it works:</strong> Organize settings into <strong>Groups</strong> (logical groupings) containing <strong>Properties</strong> (individual values).
         <br><br>
-        <strong>Example:</strong> Group "apiService" might contain properties: baseUrl ("https://api.example.com"), apiKey (your key), timeout (30000). Use <strong>credential</strong> type for sensitive values to mask them in the editor.
+        <strong>Example:</strong> Group "apiService" might contain properties: baseUrl ("https://api.example.com"), apiKey (your key), timeout (30000). Use <strong>cred</strong> type for sensitive values to mask them in the editor.
     </div>
 </script>
 
@@ -581,7 +581,7 @@
                 <li><strong>Properties:</strong> Multiple properties with:
                     <ul>
                         <li><strong>Property Name:</strong> Setting name (e.g., "baseUrl", "timeout", "enabled")</li>
-                        <li><strong>Type:</strong> Data type (str, credential, num, bool, json, date)</li>
+                        <li><strong>Type:</strong> Data type (str, cred, num, bool, json, date)</li>
                         <li><strong>Value:</strong> The configuration value (all types encrypted at rest)</li>
                     </ul>
                 </li>
@@ -592,13 +592,13 @@
     <h3>Supported Types</h3>
     <ul>
         <li><strong>str</strong> - Text values (URLs, hostnames, usernames, tokens, base64 encoded data)</li>
-        <li><strong>credential</strong> - Masked input for passwords, API keys, secrets</li>
+        <li><strong>cred</strong> - Masked input for credentials, API keys, secrets</li>
         <li><strong>num</strong> - Numbers (ports, timeouts, thresholds, limits)</li>
         <li><strong>bool</strong> - Boolean flags (enabled/disabled, feature flags)</li>
         <li><strong>json</strong> - Complex data (nested objects, arrays, configurations)</li>
         <li><strong>date</strong> - Timestamps (expiration dates, schedule times)</li>
     </ul>
-    <p><strong>Note:</strong> All values are encrypted at rest using Node-RED's built-in encryption. No external dependencies required. Use <strong>credential</strong> type for masked editor input.</p>
+    <p><strong>Note:</strong> All values are encrypted at rest using Node-RED's built-in encryption. No external dependencies required. Use <strong>cred</strong> type for masked editor input.</p>
     
     <h3>Details</h3>
     <p>This node stores all configuration values in a single encrypted field using Node-RED's built-in credential encryption. The vault content is stored in <code>flows_cred.json</code> and never appears in plain text in <code>flows.json</code>.</p>
@@ -607,7 +607,7 @@
     
     <p><strong>Use Cases:</strong></p>
     <ul>
-        <li>Store credentials (usernames, passwords, API keys)</li>
+        <li>Store credentials (usernames, API keys, secrets)</li>
         <li>Manage API endpoints and base URLs</li>
         <li>Configure database connection settings</li>
         <li>Control feature flags and environment settings</li>
@@ -623,8 +623,8 @@
         <li>For each property, enter:
             <ul>
                 <li>Property name (e.g., "username", "password", "port")</li>
-                <li>Type from dropdown (str, credential, num, bool, json, date)</li>
-                <li>Value (visible in editor for most types, masked for credential type, encrypted when saved)</li>
+                <li>Type from dropdown (str, cred, num, bool, json, date)</li>
+                <li>Value (visible in editor for most types, masked for cred type, encrypted when saved)</li>
             </ul>
         </li>
         <li>Use <strong>"×"</strong> to remove individual properties or <strong>"Delete Group"</strong> for entire groups</li>
@@ -635,7 +635,7 @@
     <p>Group: <code>apiService</code></p>
     <ul>
         <li>Property: <code>baseUrl</code>, Type: <code>str</code>, Value: <code>https://api.production.com</code></li>
-        <li>Property: <code>apiKey</code>, Type: <code>credential</code>, Value: <code>sk_live_abc123</code></li>
+        <li>Property: <code>apiKey</code>, Type: <code>cred</code>, Value: <code>sk_live_abc123</code></li>
         <li>Property: <code>timeout</code>, Type: <code>num</code>, Value: <code>30000</code></li>
         <li>Property: <code>retryEnabled</code>, Type: <code>bool</code>, Value: <code>true</code></li>
     </ul>

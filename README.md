@@ -2,6 +2,8 @@
 
 A Node-RED module for centralized settings management with encrypted storage. Store credentials, API endpoints, database settings, feature flags, and any other configuration values in one secure location and reuse them across multiple flows.
 
+**Compatible with Node-RED v2.0.0 and above** | **No external dependencies** | **Uses built-in Node-RED encryption**
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -19,13 +21,17 @@ A Node-RED module for centralized settings management with encrypted storage. St
 
 This module provides a centralized approach to managing any configuration values in Node-RED flows. Instead of hardcoding settings in function nodes, scattering them across multiple flows, or managing separate configuration files, you can define all your configuration values once in a secure configuration node and retrieve them wherever needed.
 
-**Two nodes:**
-This module provides two nodes:
-- **vault-config**: A configuration node where you store all your values (the vault itself)
-- **vault**: A runtime node you use in your flows to retrieve specific values from the vault
+**How to Use:**
+
+All your settings are stored once in a **vault-config** configuration node (accessed via the Configuration nodes panel). Once stored, you can retrieve these values in two ways:
+
+1. **Using the vault node** - Add vault nodes to your flows to automatically retrieve and populate settings when messages pass through
+2. **Using function nodes** - Access vault values directly in your JavaScript code using `global.get('vault')` - no need to add extra nodes to your flow
+
+Both methods access the same encrypted configuration, so use whichever approach fits your flow best - or use both together.
 
 **What can you store:**
-- Credentials (API keys, passwords, tokens)
+- Credentials (API keys, secrets, tokens)
 - API endpoints and base URLs
 - Database connection strings and settings
 - SMTP server configurations
@@ -57,21 +63,41 @@ The vault runtime node is what you place in your flows to retrieve values. You c
 
 ## Installation
 
-### From Local Path
-
-```bash
-cd ~/.node-red
-npm install /path/to/node-red-contrib-settings-vault
-```
-
-### From npm (when published)
+Install via npm in your Node-RED user directory (typically `~/.node-red`):
 
 ```bash
 cd ~/.node-red
 npm install node-red-contrib-settings-vault
 ```
 
-After installation, restart Node-RED to load the new nodes.
+**Important:** Restart Node-RED after installation to load the nodes.
+
+### Requirements
+
+- Node-RED v2.0.0 or higher
+- Node.js v14.0.0 or higher
+
+The nodes will appear in the palette:
+- **vault-config** in the Configuration nodes panel (accessible via menu)
+- **vault** in the function category with a key icon
+
+## Quick Start
+
+**Step 1: Create a Vault Configuration**
+1. Open Node-RED editor
+2. Go to menu (☰) → Configuration nodes
+3. Click "Add" → "vault-config"
+4. Name it (e.g., "Production Settings")
+5. Click "Add Group" and name it (e.g., "apiService")
+6. Click "Add Field" to add properties with name, type, and value
+7. Click "Update" to save
+
+**Step 2: Use in Your Flow**
+1. Drag the "vault" node (from function category) into your flow
+2. Double-click to configure
+3. Select your vault-config
+4. Configure what to retrieve and where to store it
+5. Deploy your flow
 
 ## Usage
 
@@ -90,13 +116,18 @@ After installation, restart Node-RED to load the new nodes.
 | Type | Description | Use Case |
 |------|-------------|----------|
 | `str` | String/text | Usernames, hostnames, URLs, tokens |
-| `credential` | Masked string | Passwords, secrets, API keys (hidden in editor) |
+| `cred` | Masked string | Credentials, secrets, API keys (hidden in editor) |
 | `num` | Number | Ports, timeouts, IDs, counts |
 | `bool` | Boolean | Feature flags, enable/disable settings |
 | `json` | JSON object/array | Complex configurations, nested data |
 | `date` | Timestamp | Expiration dates, schedule times |
 
-**Example:** For API settings, create a group "apiService" with properties: `baseUrl` (str), `apiKey` (credential), `timeout` (num).
+**Example:** For API settings, create a group "apiService" with properties: `baseUrl` (str), `apiKey` (cred), `timeout` (num).
+
+**UI Features:**
+- **Clone Groups**: Use the "Clone" button to duplicate an entire group with all its properties - useful for creating multiple similar configurations or copying dev settings to production
+- **Collapse/Expand**: Click the group header to collapse or expand groups for easier navigation in large configurations
+- **Validation**: Real-time validation shows errors if group names or property names are empty or duplicated
 
 ### Using in Your Flow
 
@@ -121,6 +152,8 @@ You can also access vault values directly from function nodes without using vaul
 // At the top of your function node
 const vault = global.get('vault');
 ```
+
+> **Important:** The string `'vault'` in `global.get('vault')` is a requirement and must be exactly as shown. This is the registered name of the vault function API. You can assign it to any variable name you like (e.g., `const v = global.get('vault')`), but the lookup key must always be `'vault'`.
 
 **Basic Usage:**
 
@@ -249,7 +282,7 @@ All configuration values stored in the vault are encrypted using Node-RED's buil
 **For Security:**
 1. **Backups**: Always backup both `flows.json` and `flows_cred.json` together
 2. **Access Control**: Enable Node-RED's admin authentication to prevent unauthorized access
-3. **Credential Type**: Use the "credential" type for sensitive values to mask them in the editor
+3. **Cred Type**: Use the "cred" type for sensitive values to mask them in the editor
 4. **Separate Environments**: Use different `credentialSecret` values for dev, staging, and production
 
 **For Configuration Management:**
@@ -308,25 +341,27 @@ Additionally, the node displays a red status indicator with a brief error descri
 3. Verify vault configuration in the Configuration nodes panel
 4. Check that groups and property names match exactly (case-sensitive)
 
-## Version 2.0 Breaking Changes
+## Version 2.0 Features
 
-**Data Format Change**: Version 2.0 introduces a new internal storage format that preserves type metadata for all properties. This ensures that credential-type fields remain properly masked in the editor when reopening vault configurations.
+**Function Node API**: Access vault values directly from function nodes without adding vault nodes to your flow.
 
-**What Changed**:
-- All property values now include type information in storage
-- Credential fields (previously "password" type, now "credential") maintain their masked state across save/load cycles
-- The type is now Node-RED's standard "credential" (matching environment variables) instead of custom "password"
-
-**Migration**:
-- ✅ **Automatic**: Existing vaults load correctly and are automatically migrated to the new format on first save
-- ✅ **No action required**: Your existing configurations will continue working
-- ⚠️ **One-way upgrade**: After saving a vault in v2.0, it cannot be read by earlier versions
-- 📝 **Recommendation**: Backup your `flows.json` and `flows_cred.json` before upgrading
+```javascript
+const vault = global.get('vault');
+const apiKey = vault('Production Settings')
+    .getGroup('apiService')
+    .getProperty('apiKey');
+```
 
 **Benefits**:
-- Credential fields now properly show as masked when editing vault configurations
-- Type consistency across all properties
-- Standard Node-RED terminology throughout
+- **Cleaner flows**: Retrieve settings in function nodes when needed
+- **Flexible access**: Use fluent API, destructuring, or direct property access
+- **Less complexity**: Fewer nodes for simple value retrieval
+- **Modern patterns**: JavaScript-friendly API design
+
+**Compatibility**:
+- ✅ Works with Node-RED v2.0.0 through v4.x and beyond
+- ✅ Backward compatible - existing vaults and flows work without changes
+- ✅ Opt-in - use the function API or vault nodes, or both together
 
 ## Troubleshooting
 
@@ -365,3 +400,31 @@ Additionally, the node displays a red status indicator with a brief error descri
 - Always restart Node-RED after installing nodes
 - If using Docker, restart the container
 - Check npm install completed without errors
+
+### Issue: Vault node doesn't appear in palette
+
+**Cause**: Node-RED needs to be restarted or module wasn't installed correctly
+
+**Solution**:
+- Verify installation: `npm list node-red-contrib-settings-vault` in your Node-RED directory
+- Restart Node-RED completely
+- Check Node-RED logs for loading errors
+- Look for "vault" in the function category (key icon)
+
+### Issue: Function API not working
+
+**Cause**: Vault function not registered or incorrect vault name
+
+**Solution**:
+- Ensure at least one vault-config node exists and is deployed
+- Use exact vault name: `vault('Production Settings')` - names are case-sensitive
+- Check Node-RED logs for registration errors
+- Verify `global.get('vault')` returns a function in your function node
+
+## License
+
+MIT
+
+## Support
+
+For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/carefulcomputer/node-red-contrib-settings-vault).

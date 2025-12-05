@@ -97,8 +97,9 @@ module.exports = function(RED) {
         vaultRegistry[this.id] = this;
         
         // Cleanup: Unregister vault when node is closed
+        const self = this;
         this.on('close', function() {
-            delete vaultRegistry[this.id];
+            delete vaultRegistry[self.id];
         });
     }
     
@@ -126,8 +127,9 @@ module.exports = function(RED) {
      *   const { prop1, prop2 } = vault('VaultName').getGroup('groupName');  // Destructuring
      *   const all = vault('VaultName').getGroup('groupName').getAll();  // Clean copy
      */
-    RED.settings.functionGlobalContext = RED.settings.functionGlobalContext || {};
-    RED.settings.functionGlobalContext.vault = function(vaultName) {
+    // Register vault function in functionGlobalContext
+    // Note: functionGlobalContext is read-only in Node-RED v4.x, but we can still set properties on it
+    const vaultFunction = function(vaultName) {
         // Find vault by name in the registry
         let vaultNode = null;
         for (const id in vaultRegistry) {
@@ -177,7 +179,7 @@ module.exports = function(RED) {
                 
                 // Add getProperty method
                 result.getProperty = function(property) {
-                    if (!result.hasOwnProperty(property)) {
+                    if (!result.hasOwnProperty(property) || typeof result[property] === 'function') {
                         throw new Error('Property "' + property + '" not found in group "' + groupName + '"');
                     }
                     return result[property];
@@ -198,6 +200,11 @@ module.exports = function(RED) {
             }
         };
     };
+    
+    // Safely register the vault function (handles both old and new Node-RED versions)
+    if (RED.settings.functionGlobalContext) {
+        RED.settings.functionGlobalContext.vault = vaultFunction;
+    }
     
     
     /**
