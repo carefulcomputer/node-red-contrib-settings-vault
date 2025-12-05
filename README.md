@@ -130,6 +130,9 @@ Multiple properties can be retrieved in a single vault node.
 
 #### Using Function Node
 
+<details>
+<summary><strong>Function Node Examples</strong> (click to expand)</summary>
+
 ```javascript
 const vault = global.get('vault');
 
@@ -152,9 +155,14 @@ const config = vault('Production Settings').getGroup('apiService').getAll();
 
 > **Note:** `global.get('vault')` is required - 'vault' is the registered name of the API.
 
+</details>
+
 #### Using JSONata
 
 In any node with JSONata support (change, switch, etc.), set expression type to "JSONata" (J:):
+
+<details>
+<summary><strong>Basic JSONata Examples</strong> (click to expand)</summary>
 
 ```
 // Using getProperty() method
@@ -167,6 +175,55 @@ $globalContext('vault')('Production Settings').getGroup('apiService').apiKey
 $globalContext('vault')('Production Settings').getGroup('database').host & ":" & 
 $globalContext('vault')('Production Settings').getGroup('database').port
 ```
+
+</details>
+
+<details>
+<summary><strong>Advanced: Dynamic Environment Switching</strong> (click to expand)</summary>
+
+Use a single property to control which environment's credentials are used across all flows.
+
+**Vault Structure:**
+```
+Vault: "Settings"
+  Group: "config"
+    - currentEnvironment: "production"  (str)
+  
+  Group: "production"
+    - username: "prod_user"
+    - password: "prod_pass_123"
+    - endpoint: "https://api.prod.example.com"
+  
+  Group: "staging"
+    - username: "staging_user"
+    - password: "staging_pass"
+    - endpoint: "https://api.staging.example.com"
+```
+
+**Get single value based on environment:**
+```jsonata
+(
+  $env := $globalContext('vault')('Settings').getGroup('config').currentEnvironment;
+  $globalContext('vault')('Settings').getGroup($env).username
+)
+```
+
+**Get all environment values at once:**
+```jsonata
+(
+  $env := $globalContext('vault')('Settings').getGroup('config').currentEnvironment;
+  $group := $globalContext('vault')('Settings').getGroup($env);
+  {
+    "username": $group.username,
+    "password": $group.password,
+    "endpoint": $group.endpoint
+  }
+)
+```
+
+**Benefit:** Change `currentEnvironment` from "production" to "staging" once, and all your flows automatically use staging credentials!
+
+</details>
 
 ## Use Cases
 
