@@ -23,12 +23,13 @@ This module provides a centralized approach to managing any configuration values
 
 **How to Use:**
 
-All your settings are stored once in a **vault-config** configuration node (accessed via the Configuration nodes panel). Once stored, you can retrieve these values in two ways:
+All your settings are stored once in a **vault-config** configuration node (viewable/editable via menu → Configuration nodes). Once stored, you can retrieve these values in three ways:
 
 1. **Using the vault node** - Add vault nodes to your flows to automatically retrieve and populate settings when messages pass through
 2. **Using function nodes** - Access vault values directly in your JavaScript code using `global.get('vault')` - no need to add extra nodes to your flow
+3. **Using JSONata expressions** - Access vault values in any node with JSONata support (change, switch, etc.) using `$globalContext('vault')` for inline transformations
 
-Both methods access the same encrypted configuration, so use whichever approach fits your flow best - or use both together.
+All methods access the same encrypted configuration, so use whichever approach fits your flow best - or use them together.
 
 **What can you store:**
 - Credentials (API keys, secrets, tokens)
@@ -78,38 +79,8 @@ npm install node-red-contrib-settings-vault
 - Node.js v14.0.0 or higher
 
 The nodes will appear in the palette:
-- **vault-config** in the Configuration nodes panel (accessible via menu)
+- **vault-config** (created through a vault node, then viewable in Configuration nodes panel via menu)
 - **vault** in the function category with a key icon
-
-## Quick Start
-
-**Step 1: Create a Vault Configuration**
-1. Open Node-RED editor
-2. Go to menu (☰) → Configuration nodes
-3. Click "Add" → "vault-config"
-4. Name it (e.g., "Production Settings")
-5. Click "Add Group" and name it (e.g., "apiService")
-6. Click "Add Field" to add properties with name, type, and value
-7. Click "Update" to save
-
-**Step 2: Use in Your Flow**
-1. Drag the "vault" node (from function category) into your flow
-2. Double-click to configure
-3. Select your vault-config
-4. Configure what to retrieve and where to store it
-5. Deploy your flow
-
-## Usage
-
-### Creating a Vault Configuration
-
-1. Open Node-RED editor
-2. Go to menu (three horizontal lines) → Configuration nodes
-3. Click "Add" and select "vault-config"
-4. Give it a meaningful name (e.g., "Production Settings")
-5. Click "Add Group" and name it based on what it contains (e.g., "apiService" for API-related settings)
-6. Add properties within that group - each has a name, type, and value
-7. Click "Update" to save
 
 **Supported data types:**
 
@@ -122,89 +93,80 @@ The nodes will appear in the palette:
 | `json` | JSON object/array | Complex configurations, nested data |
 | `date` | Timestamp | Expiration dates, schedule times |
 
-**Example:** For API settings, create a group "apiService" with properties: `baseUrl` (str), `apiKey` (cred), `timeout` (num).
+## Usage
 
-**UI Features:**
-- **Clone Groups**: Use the "Clone" button to duplicate an entire group with all its properties - useful for creating multiple similar configurations or copying dev settings to production
-- **Collapse/Expand**: Click the group header to collapse or expand groups for easier navigation in large configurations
-- **Validation**: Real-time validation shows errors if group names or property names are empty or duplicated
+**Overview:**
 
-### Using in Your Flow
+Create a vault configuration once and use it across multiple flows. Store your settings in groups (e.g., "apiService", "database") with properties inside each group. Once configured, retrieve values using:
+- **Vault node** - Visual node in your flow
+- **Function node** - JavaScript API for programmatic access
+- **JSONata expressions** - Inline access in any node with JSONata support (change, switch, etc.)
 
-1. Drag the "vault" node into your flow
-2. Double-click to configure
-3. Select which vault-config to use
-4. Configure what to retrieve (add multiple rows as needed):
-   - **Group**: Which group contains the value
-   - **Property**: Which specific value to retrieve
-   - **Output**: Where to store it (`msg`, `flow`, or `global`) and the property name
-5. Click "Done" and deploy
+### Creating a Vault Configuration
 
-When messages pass through the vault node, the configured values are automatically retrieved and populated.
+1. Drag a "vault" node into your flow and double-click to open settings
+2. Click the pencil icon (✏️) next to the Vault dropdown to create a new vault-config
+3. Name it (e.g., "Production Settings")
+4. Add groups (e.g., "apiService") and properties within each group (e.g., baseUrl, apiKey, timeout)
+5. Click "Add" to save
 
-### Using in Function Nodes
+**Note:** Vault configurations can only be created through a vault node. Once created, view/edit them via menu → Configuration nodes.
 
-You can also access vault values directly from function nodes without using vault nodes in your flow.
+### Retrieving Values
 
-**Setup:**
+#### Using Vault Node
 
-```javascript
-// At the top of your function node
-const vault = global.get('vault');
+Add a vault node to your flow and configure it to retrieve values when messages pass through:
+
+```
+Configure vault node:
+- Vault: Select "Production Settings"
+- Group: "apiService"
+- Property: "apiKey"
+- Output to: msg.apiKey
 ```
 
-> **Important:** The string `'vault'` in `global.get('vault')` is a requirement and must be exactly as shown. This is the registered name of the vault function API. You can assign it to any variable name you like (e.g., `const v = global.get('vault')`), but the lookup key must always be `'vault'`.
+Multiple properties can be retrieved in a single vault node.
 
-**Basic Usage:**
-
-```javascript
-// Get a single property
-const apiKey = vault('Production Settings')
-    .getGroup('apiService')
-    .getProperty('apiKey');
-
-// Use in your code
-msg.headers = { 'Authorization': 'Bearer ' + apiKey };
-```
-
-**Advanced Usage:**
+#### Using Function Node
 
 ```javascript
 const vault = global.get('vault');
 
-// Get entire group and access properties directly
-const db = vault('Production Settings').getGroup('database');
-msg.connection = `${db.host}:${db.port}`;
+// Using getProperty() method
+const apiKey = vault('Production Settings').getGroup('apiService').getProperty('apiKey');
+
+// Direct property access
+const apiKey = vault('Production Settings').getGroup('apiService').apiKey;
+
+// Get entire group
+const api = vault('Production Settings').getGroup('apiService');
+const url = api.baseUrl + '/endpoint';
 
 // Destructure multiple properties
-const { apiKey, baseUrl, timeout } = vault('Prod').getGroup('apiService');
-msg.url = baseUrl + '/endpoint';
+const { baseUrl, apiKey, timeout } = vault('Production Settings').getGroup('apiService');
 
-// Mix explicit getProperty() for required values, direct access for optional
-const api = vault('Prod').getGroup('apiService');
-const required = api.getProperty('apiKey');  // Throws error if missing
-const optional = api.retryCount || 3;         // Safe default if undefined
-
-// Get clean copy for JSON serialization
-const config = vault('Prod').getGroup('features').getAll();
-msg.payload = config;
+// Get all properties as object
+const config = vault('Production Settings').getGroup('apiService').getAll();
 ```
 
-**Error Handling:**
+> **Note:** `global.get('vault')` is required - 'vault' is the registered name of the API.
 
-```javascript
-try {
-    const vault = global.get('vault');
-    const apiKey = vault('Production Settings')
-        .getGroup('apiService')
-        .getProperty('apiKey');
-} catch (err) {
-    node.error('Failed to get vault value: ' + err.message);
-    return null;
-}
+#### Using JSONata
+
+In any node with JSONata support (change, switch, etc.), set expression type to "JSONata" (J:):
+
 ```
+// Using getProperty() method
+$globalContext('vault')('Production Settings').getGroup('apiService').getProperty('apiKey')
 
-**Performance Tip:** Cache the vault reference at the top of your function node for better performance with multiple access calls.
+// Direct property access
+$globalContext('vault')('Production Settings').getGroup('apiService').apiKey
+
+// Access multiple properties
+$globalContext('vault')('Production Settings').getGroup('database').host & ":" & 
+$globalContext('vault')('Production Settings').getGroup('database').port
+```
 
 ## Use Cases
 
@@ -275,7 +237,15 @@ All vault nodes using that configuration will use the updated values.
 
 ### Built-In Encryption
 
-All configuration values stored in the vault are encrypted using Node-RED's built-in credential encryption mechanism. This is the same proven encryption system Node-RED uses for username/password fields in core nodes.
+All vault data is encrypted using Node-RED's built-in credential encryption mechanism and stored in `flows_cred.json`. This is the same proven encryption system Node-RED uses for username/password fields in core nodes.
+
+**What is encrypted:**
+- Group names
+- Property names  
+- All property values
+
+**What is NOT encrypted:**
+- Vault configuration name (stored in `flows.json`)
 
 ### Best Practices
 
@@ -340,28 +310,6 @@ Additionally, the node displays a red status indicator with a brief error descri
 2. Use debug nodes after the vault node to inspect output
 3. Verify vault configuration in the Configuration nodes panel
 4. Check that groups and property names match exactly (case-sensitive)
-
-## Version 2.0 Features
-
-**Function Node API**: Access vault values directly from function nodes without adding vault nodes to your flow.
-
-```javascript
-const vault = global.get('vault');
-const apiKey = vault('Production Settings')
-    .getGroup('apiService')
-    .getProperty('apiKey');
-```
-
-**Benefits**:
-- **Cleaner flows**: Retrieve settings in function nodes when needed
-- **Flexible access**: Use fluent API, destructuring, or direct property access
-- **Less complexity**: Fewer nodes for simple value retrieval
-- **Modern patterns**: JavaScript-friendly API design
-
-**Compatibility**:
-- ✅ Works with Node-RED v2.0.0 through v4.x and beyond
-- ✅ Backward compatible - existing vaults and flows work without changes
-- ✅ Opt-in - use the function API or vault nodes, or both together
 
 ## Troubleshooting
 
