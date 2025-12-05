@@ -10,11 +10,13 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for changelog generation
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -46,4 +48,60 @@ jobs:
       - name: Skip publishing
         if: steps.check-version.outputs.exists == 'true'
         run: echo "Skipping publish - version ${{ steps.package-version.outputs.version }} already exists on npm"
+
+      - name: Create git tag
+        if: steps.check-version.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.package-version.outputs.version }}" -m "Release v${{ steps.package-version.outputs.version }}"
+          git push origin "v${{ steps.package-version.outputs.version }}"
+
+      - name: Generate changelog
+        if: steps.check-version.outputs.exists == 'false'
+        id: changelog
+        run: |
+          # Get previous tag
+          PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -2 | tail -1 || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            # No previous tag, get all commits
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --reverse)
+          else
+            # Get commits since previous tag
+            CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --reverse)
+          fi
+          
+          # Save to output
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        if: steps.check-version.outputs.exists == 'false'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.package-version.outputs.version }}
+          release_name: v${{ steps.package-version.outputs.version }}
+          body: |
+            ## What's Changed
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## Installation
+            
+            ```bash
+            cd ~/.node-red
+            npm install node-red-contrib-settings-vault@${{ steps.package-version.outputs.version }}
+            ```
+            
+            **Requirements:**
+            - Node-RED v2.0.0 or higher
+            - Node.js v14.0.0 or higher
+            
+            Published to npm: https://www.npmjs.com/package/node-red-contrib-settings-vault/v/${{ steps.package-version.outputs.version }}
+          draft: false
+          prerelease: false
 
