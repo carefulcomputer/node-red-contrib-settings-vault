@@ -20,6 +20,31 @@
         gap: 8px;
     }
     
+    /* Flex sizing for field row children */
+    .vault-field-row > span:first-child {
+        flex-shrink: 0;
+        min-width: 40px;
+    }
+    
+    .vault-field-row > input.vault-field-name {
+        flex: 0 0 150px;
+        min-width: 100px;
+    }
+    
+    .vault-field-row > div {
+        flex: 1 1 auto;
+        min-width: 200px;
+    }
+    
+    .vault-field-row .validation-icon {
+        flex-shrink: 0;
+        min-width: 20px;
+    }
+    
+    .vault-field-row > button {
+        flex-shrink: 0;
+    }
+    
     .vault-field-row.validation-error, .property-row.validation-error {
         background-color: var(--red-ui-state-error-background, #ffe6e6);
     }
@@ -59,6 +84,32 @@
     
     .validation-icon .fa-exclamation-triangle {
         color: var(--red-ui-state-error, #c00);
+    }
+    
+    /* Flex sizing for property row children */
+    .property-row > select {
+        flex: 0 0 150px;
+        min-width: 100px;
+    }
+    
+    .property-row > div {
+        flex: 1 1 auto;
+        min-width: 150px;
+    }
+    
+    .property-row .property-validation-icon {
+        flex-shrink: 0;
+        min-width: 20px;
+    }
+    
+    .property-row > button {
+        flex-shrink: 0;
+    }
+    
+    /* Make TypedInput widgets fill available space */
+    .vault-field-row .red-ui-typedInput-container,
+    .property-row .red-ui-typedInput-container {
+        width: 100% !important;
     }
 </style>
 
