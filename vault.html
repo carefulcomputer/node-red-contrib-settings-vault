@@ -1,4 +1,67 @@
 <!-- Config Node: vault-config -->
+<style>
+    /* Use Node-RED theme variables for proper theme support */
+    .vault-entry-container {
+        margin-bottom: 15px;
+        padding: 12px;
+        border: 1px solid var(--red-ui-form-input-border-color, #ccc);
+        border-radius: 4px;
+        background-color: var(--red-ui-secondary-background, #f6f6f6);
+    }
+    
+    .vault-field-row, .property-row {
+        margin-bottom: 8px;
+        padding: 8px;
+        border: 1px solid var(--red-ui-form-input-border-color, #ccc);
+        border-radius: 4px;
+        background-color: var(--red-ui-primary-background, #fff);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .vault-field-row.validation-error, .property-row.validation-error {
+        background-color: var(--red-ui-state-error-background, #ffe6e6);
+    }
+    
+    .vault-header-row {
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .vault-fields-list {
+        margin-left: 20px;
+        margin-top: 10px;
+    }
+    
+    .vault-properties-header {
+        display: grid;
+        grid-template-columns: 2fr 2fr 2fr 50px;
+        gap: 10px;
+        padding: 10px 12px;
+        background: var(--red-ui-secondary-background, #f0f0f0);
+        font-weight: 600;
+        color: var(--red-ui-primary-text-color, #555);
+        border-radius: 4px 4px 0 0;
+        margin-bottom: 5px;
+    }
+    
+    .validation-icon, .property-validation-icon {
+        min-width: 20px;
+        text-align: center;
+    }
+    
+    .validation-icon .fa-check {
+        color: var(--red-ui-state-success, #5a6);
+    }
+    
+    .validation-icon .fa-exclamation-triangle {
+        color: var(--red-ui-state-error, #c00);
+    }
+</style>
+
 <script type="text/javascript">
     RED.nodes.registerType('vault-config', {
         category: 'config',
@@ -67,20 +130,18 @@
                 
                 const entryContainer = $('<div>', {
                     id: entryId,
-                    class: 'vault-entry-container',
-                    style: 'margin-bottom: 15px; padding: 12px; border: 2px solid #ddd; border-radius: 6px; background-color: #f9f9f9;'
+                    class: 'vault-entry-container'
                 });
                 
                 // Entry header with key, collapse/expand, clone, and delete buttons
                 const headerRow = $('<div>', {
-                    style: 'margin-bottom: 10px; display: flex; align-items: center; gap: 8px;'
+                    class: 'vault-header-row'
                 });
                 
                 // Collapse/Expand toggle
                 const toggleBtn = $('<button>', {
                     type: 'button',
-                    class: 'red-ui-button vault-toggle-btn',
-                    style: 'min-width: 30px; padding: 4px 8px;'
+                    class: 'red-ui-button vault-toggle-btn'
                 }).html('<i class="fa fa-chevron-right"></i>').on('click', function() {
                     const isCollapsed = entryContainer.hasClass('collapsed');
                     if (isCollapsed) {
@@ -94,16 +155,13 @@
                     }
                 });
                 
-                const keyLabel = $('<label>', {
-                    style: 'margin: 0; font-weight: bold; min-width: 60px;'
-                }).text('Group:');
+                const keyLabel = $('<label>').text('Group:');
                 
                 const keyInput = $('<input>', {
                     type: 'text',
                     class: 'vault-entry-key',
                     value: key,
-                    placeholder: 'e.g. apiService',
-                    style: 'flex: 1; max-width: 300px;'
+                    placeholder: 'e.g. apiService'
                 });
                 
                 const cloneEntryBtn = $('<button>', {
@@ -139,8 +197,7 @@
                 
                 const deleteEntryBtn = $('<button>', {
                     type: 'button',
-                    class: 'red-ui-button',
-                    style: 'margin-left: auto;'
+                    class: 'red-ui-button'
                 }).html('<i class="fa fa-trash"></i> Delete Group').on('click', function() {
                     const entryKey = keyInput.val() || 'this entry';
                     const fieldCount = entryContainer.find('.vault-field-row').length;
@@ -155,15 +212,13 @@
                 
                 // Fields list container
                 const fieldsList = $('<div>', {
-                    class: 'vault-fields-list',
-                    style: 'margin-left: 20px; margin-top: 10px;'
+                    class: 'vault-fields-list'
                 });
                 
                 // Add field button
                 const addFieldBtn = $('<button>', {
                     type: 'button',
-                    class: 'red-ui-button add-field-btn',
-                    style: 'margin-top: 8px; margin-left: 20px;'
+                    class: 'red-ui-button add-field-btn'
                 }).html('<i class="fa fa-plus"></i> Add Field').on('click', function() {
                     addFieldRow(entryId, fieldsList, '', 'str', '');
                 });
@@ -246,28 +301,21 @@
                 
                 const fieldRow = $('<div>', {
                     id: fieldId,
-                    class: 'vault-field-row',
-                    style: 'margin-bottom: 8px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; background-color: #fff; display: flex; align-items: center; gap: 8px;'
+                    class: 'vault-field-row'
                 });
                 
-                
                 // Field name input
-                const fieldNameLabel = $('<span>', {
-                    style: 'min-width: 50px;'
-                }).text('Field:');
+                const fieldNameLabel = $('<span>').text('Field:');
                 
                 const fieldNameInput = $('<input>', {
                     type: 'text',
                     class: 'vault-field-name',
                     value: fieldName,
-                    placeholder: 'e.g. username',
-                    style: 'width: 150px;'
+                    placeholder: 'e.g. username'
                 });
                 
                 // TypedInput for value
-                const valueInputContainer = $('<div>', {
-                    style: 'flex: 1; min-width: 200px;'
-                });
+                const valueInputContainer = $('<div>');
                 
                 const valueInput = $('<input>', {
                     type: 'text',
@@ -278,15 +326,13 @@
                 
                 // Validation indicator
                 const validationIcon = $('<span>', {
-                    class: 'validation-icon',
-                    style: 'min-width: 20px; text-align: center;'
+                    class: 'validation-icon'
                 }).html('');
                 
                 // Delete field button
                 const deleteFieldBtn = $('<button>', {
                     type: 'button',
-                    class: 'red-ui-button red-ui-button-small',
-                    style: 'min-width: 30px;'
+                    class: 'red-ui-button red-ui-button-small'
                 }).html('<i class="fa fa-times"></i>').on('click', function() {
                     const fieldName = fieldNameInput.val() || 'this field';
                     if (fieldNameInput.val() || valueInput.typedInput('value')) {
@@ -331,7 +377,7 @@
                     // Skip validation for empty fields
                     if (!fieldName && !currentValue) {
                         validationIcon.html('');
-                        fieldRow.css('background-color', '');
+                        fieldRow.removeClass('validation-error');
                         return;
                     }
                     
@@ -375,14 +421,14 @@
                     
                     // Update UI
                     if (isValid && fieldName && currentValue) {
-                        validationIcon.html('<i class="fa fa-check" style="color: green;" title="Valid"></i>');
-                        fieldRow.css('background-color', '');
+                        validationIcon.html('<i class="fa fa-check" title="Valid"></i>');
+                        fieldRow.removeClass('validation-error');
                     } else if (!isValid) {
-                        validationIcon.html('<i class="fa fa-exclamation-triangle" style="color: #d9534f;" title="' + errorMsg + '"></i>');
-                        fieldRow.css('background-color', '#fff3f3');
+                        validationIcon.html('<i class="fa fa-exclamation-triangle" title="' + errorMsg + '"></i>');
+                        fieldRow.addClass('validation-error');
                     } else {
                         validationIcon.html('');
-                        fieldRow.css('background-color', '');
+                        fieldRow.removeClass('validation-error');
                     }
                 }
                 
@@ -748,7 +794,7 @@ const config = vault('Prod').getGroup('apiService').getAll();</pre>
             
             // Create group dropdown
             function createGroupSelect(selectedGroup, vaultId) {
-                const select = $('<select>', { style: 'width: 100%;' });
+                const select = $('<select>');
                 const groups = loadAvailableGroups(vaultId);
                 
                 select.append($('<option>', { value: '' }).text('-- select group --'));
@@ -768,7 +814,7 @@ const config = vault('Prod').getGroup('apiService').getAll();</pre>
             
             // Create property dropdown
             function createPropertySelect(groupName, selectedProperty, vaultId) {
-                const select = $('<select>', { style: 'width: 100%;' });
+                const select = $('<select>');
                 const properties = loadPropertiesForGroup(groupName, vaultId);
                 
                 select.append($('<option>', { value: '' }).text('-- select property --'));
@@ -797,8 +843,7 @@ const config = vault('Prod').getGroup('apiService').getAll();</pre>
                 
                 const row = $('<div>', {
                     id: rowId,
-                    class: 'property-row',
-                    style: 'margin-bottom: 8px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; background-color: #fff; display: flex; align-items: center; gap: 8px;'
+                    class: 'property-row'
                 });
                 
                 // Group dropdown
@@ -847,9 +892,7 @@ const config = vault('Prod').getGroup('apiService').getAll();</pre>
                 });
                 
                 // Output field container with TypedInput (msg/flow/global)
-                const outputContainer = $('<div>', {
-                    style: 'flex: 1; min-width: 150px;'
-                });
+                const outputContainer = $('<div>');
                 
                 const outputInput = $('<input>', {
                     type: 'text',
@@ -861,8 +904,7 @@ const config = vault('Prod').getGroup('apiService').getAll();</pre>
                 
                 // Validation indicator
                 const validationIcon = $('<span>', {
-                    class: 'property-validation-icon',
-                    style: 'min-width: 20px; text-align: center;'
+                    class: 'property-validation-icon'
                 }).html('');
                 row.append(validationIcon);
                 
@@ -913,8 +955,7 @@ const config = vault('Prod').getGroup('apiService').getAll();</pre>
                 // Delete button
                 const deleteBtn = $('<button>', {
                     type: 'button',
-                    class: 'red-ui-button red-ui-button-small property-delete-btn',
-                    style: 'min-width: 30px;'
+                    class: 'red-ui-button red-ui-button-small property-delete-btn'
                 }).html('<i class="fa fa-times"></i>').on('click', function() {
                     row.remove();
                     updateDeleteButtons();
@@ -1012,17 +1053,17 @@ const config = vault('Prod').getGroup('apiService').getAll();</pre>
                         if (group && property && outputValue) {
                             validPropertyCount++;
                             // Clear error indicator
-                            row.css('background-color', '#fff');
+                            row.removeClass('validation-error');
                             validationIcon.html('');
                         } else {
                             hasPartialRow = true;
                             // Show error indicator
-                            row.css('background-color', '#ffe6e6');
-                            validationIcon.html('<i class="fa fa-exclamation-triangle" style="color: #c00;"></i>');
+                            row.addClass('validation-error');
+                            validationIcon.html('<i class="fa fa-exclamation-triangle"></i>');
                         }
                     } else {
                         // Empty row - clear indicators
-                        row.css('background-color', '#fff');
+                        row.removeClass('validation-error');
                         validationIcon.html('');
                     }
                 });
@@ -1099,7 +1140,7 @@ const config = vault('Prod').getGroup('apiService').getAll();</pre>
     </div>
     <div class="form-row">
         <label style="width: 100%;"><i class="fa fa-list"></i> Properties to Retrieve</label>
-        <div style="display: grid; grid-template-columns: 2fr 2fr 2fr 50px; gap: 10px; padding: 10px 12px; background: #e8e8e8; font-weight: 600; color: #555; border-radius: 4px 4px 0 0; margin-bottom: 5px;">
+        <div class="vault-properties-header">
             <div>Group</div>
             <div>Property</div>
             <div>Save to</div>
