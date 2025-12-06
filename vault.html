@@ -38,7 +38,7 @@
     
     .vault-properties-header {
         display: grid;
-        grid-template-columns: 2fr 2fr 2fr 50px;
+        grid-template-columns: 1.5fr 3fr 1.5fr 50px;
         gap: 10px;
         padding: 10px 12px;
         background: var(--red-ui-secondary-background, #f0f0f0);
@@ -592,25 +592,27 @@
     
     <div class="form-row">
         <label style="width: 100%;"><i class="fa fa-lock"></i> Vault Entries</label>
-        <div id="vault-entries-list" style="margin-top: 10px; width: 100%; max-height: 500px; overflow-y: auto;"></div>
-    </div>
-    
-    <div class="form-row">
-        <button type="button" id="vault-add-entry" class="red-ui-button">
-            <i class="fa fa-plus"></i> Add Group
-        </button>
+        <div style="width: 100%; max-height: 500px; overflow-y: auto;">
+            <div id="vault-entries-list" style="margin-top: 10px; width: 100%;"></div>
+            
+            <div style="margin-top: 10px;">
+                <button type="button" id="vault-add-entry" class="red-ui-button">
+                    <i class="fa fa-plus"></i> Add Group
+                </button>
+            </div>
+            
+            <div class="form-tips" style="margin-top: 15px;">
+                <strong>What is this?</strong> This configuration node stores your settings in one secure, encrypted location. No external dependencies - uses Node-RED's built-in encryption.
+                <br><br>
+                <strong>How it works:</strong> Organize settings into <strong>Groups</strong> (logical groupings) containing <strong>Properties</strong> (individual values).
+                <br><br>
+                <strong>Example:</strong> Group "apiService" might contain properties: baseUrl ("https://api.example.com"), apiKey (your key), timeout (30000). Use <strong>cred</strong> type for sensitive values to mask them in the editor.
+            </div>
+        </div>
     </div>
     
     <!-- Hidden field to store the actual JSON -->
     <input type="hidden" id="node-config-input-store">
-    
-    <div class="form-tips">
-        <strong>What is this?</strong> This configuration node stores your settings in one secure, encrypted location. No external dependencies - uses Node-RED's built-in encryption.
-        <br><br>
-        <strong>How it works:</strong> Organize settings into <strong>Groups</strong> (logical groupings) containing <strong>Properties</strong> (individual values).
-        <br><br>
-        <strong>Example:</strong> Group "apiService" might contain properties: baseUrl ("https://api.example.com"), apiKey (your key), timeout (30000). Use <strong>cred</strong> type for sensitive values to mask them in the editor.
-    </div>
 </script>
 
 <script type="text/html" data-help-name="vault-config">
