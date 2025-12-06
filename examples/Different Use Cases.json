@@ -1,0 +1,681 @@
+[
+    {
+        "id": "0d2678474495f256",
+        "type": "inject",
+        "z": "22b50258caf28e95",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 100,
+        "wires": [
+            [
+                "6db2ed36a51c7850"
+            ]
+        ]
+    },
+    {
+        "id": "6db2ed36a51c7850",
+        "type": "vault",
+        "z": "22b50258caf28e95",
+        "name": "Simple",
+        "vault": "e52ac488e8307f30",
+        "properties": [
+            {
+                "group": "config",
+                "property": "currentEnvironment",
+                "output": "msg.currentEnvironment"
+            },
+            {
+                "group": "staging",
+                "property": "password",
+                "output": "flow.flowPassword"
+            },
+            {
+                "group": "production",
+                "property": "endpoint",
+                "output": "global.GlobalEndpoint"
+            }
+        ],
+        "x": 290,
+        "y": 100,
+        "wires": [
+            [
+                "8bbfb3da1101a607"
+            ]
+        ]
+    },
+    {
+        "id": "56ac41a435e80d40",
+        "type": "function",
+        "z": "22b50258caf28e95",
+        "name": "Function",
+        "func": "const vault = global.get('vault');\n\nconst endpoint = vault('Settings')\n    .getGroup('staging')\n    .getProperty('endpoint');\n\n// Use in your code\nmsg.endpoint = endpoint;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 360,
+        "wires": [
+            [
+                "aca7f018ac563861"
+            ]
+        ]
+    },
+    {
+        "id": "6244e4382b58f7a5",
+        "type": "inject",
+        "z": "22b50258caf28e95",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 360,
+        "wires": [
+            [
+                "56ac41a435e80d40"
+            ]
+        ]
+    },
+    {
+        "id": "03753624e723fe05",
+        "type": "change",
+        "z": "22b50258caf28e95",
+        "name": "JSonata",
+        "rules": [
+            {
+                "t": "set",
+                "p": "username",
+                "pt": "msg",
+                "to": "(   $env := $globalContext('vault')('Settings').getGroup('config').currentEnvironment;   $globalContext('vault')('Settings').getGroup($env).username )",
+                "tot": "jsonata"
+            },
+            {
+                "t": "set",
+                "p": "password",
+                "pt": "msg",
+                "to": "(   $env := $globalContext('vault')('Settings').getGroup('config').currentEnvironment;   $globalContext('vault')('Settings').getGroup($env).password )",
+                "tot": "jsonata"
+            },
+            {
+                "t": "set",
+                "p": "endpoint",
+                "pt": "msg",
+                "to": "(   $env := $globalContext('vault')('Settings').getGroup('config').currentEnvironment;   $globalContext('vault')('Settings').getGroup($env).endpoint )",
+                "tot": "jsonata"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 340,
+        "y": 740,
+        "wires": [
+            [
+                "90ac2f5c826e31b7"
+            ]
+        ]
+    },
+    {
+        "id": "1707752c25e0d42e",
+        "type": "inject",
+        "z": "22b50258caf28e95",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 160,
+        "y": 740,
+        "wires": [
+            [
+                "03753624e723fe05"
+            ]
+        ]
+    },
+    {
+        "id": "90ac2f5c826e31b7",
+        "type": "debug",
+        "z": "22b50258caf28e95",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 520,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "aca7f018ac563861",
+        "type": "debug",
+        "z": "22b50258caf28e95",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 480,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "8bbfb3da1101a607",
+        "type": "debug",
+        "z": "22b50258caf28e95",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 460,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "ec173256d13ad6a7",
+        "type": "comment",
+        "z": "22b50258caf28e95",
+        "name": "Dynamically update the property",
+        "info": "This example shows how to automatically load the right \nsettings for different environments (like production vs staging).\n\nHow it works:\n1. Set 'currentEnvironment' to \"production\" or \"staging\"\n2. The flow reads that value\n3. It automatically loads username, password, and endpoint \n   from the matching environment group\n\nResult: Change environments with one click - all your \nflows instantly use the correct credentials.\n\n\n",
+        "x": 170,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "8ec8302b2deb10ba",
+        "type": "comment",
+        "z": "22b50258caf28e95",
+        "name": "Basic use case",
+        "info": "This is most simple of use case.\nYou directly read the setting and \nmake it available in msg/flow/global.",
+        "x": 120,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "d5012916914b4d27",
+        "type": "comment",
+        "z": "22b50258caf28e95",
+        "name": "Available in function",
+        "info": "You can even access the properties in a \nfunction.\n",
+        "x": 130,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "3c4fbd2fd454ab2d",
+        "type": "comment",
+        "z": "22b50258caf28e95",
+        "name": "Use in JSONATA",
+        "info": "You can use them whereever jsonata is used\n",
+        "x": 120,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "6d1109035525bb79",
+        "type": "switch",
+        "z": "22b50258caf28e95",
+        "name": "Enviornment",
+        "property": "$globalContext('vault')('Settings').getGroup('config').currentEnvironment",
+        "propertyType": "jsonata",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "production",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "staging",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 290,
+        "y": 520,
+        "wires": [
+            [
+                "2d373ae13fdac791"
+            ],
+            [
+                "aa52ced9c398499d"
+            ]
+        ]
+    },
+    {
+        "id": "3bf9e83e82721d0e",
+        "type": "inject",
+        "z": "22b50258caf28e95",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 520,
+        "wires": [
+            [
+                "6d1109035525bb79"
+            ]
+        ]
+    },
+    {
+        "id": "2d373ae13fdac791",
+        "type": "function",
+        "z": "22b50258caf28e95",
+        "name": "Production",
+        "func": "// do prod stuff\nmsg.payload = 'did some prod stuff'\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 500,
+        "wires": [
+            [
+                "67dd578211c70a93"
+            ]
+        ]
+    },
+    {
+        "id": "aa52ced9c398499d",
+        "type": "function",
+        "z": "22b50258caf28e95",
+        "name": "Staging",
+        "func": "// do staging stuff\nmsg.payload = 'did some staging stuff'\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 540,
+        "wires": [
+            [
+                "5461227550e3382c"
+            ]
+        ]
+    },
+    {
+        "id": "67dd578211c70a93",
+        "type": "debug",
+        "z": "22b50258caf28e95",
+        "name": "debug 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 660,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "5461227550e3382c",
+        "type": "debug",
+        "z": "22b50258caf28e95",
+        "name": "debug 5",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 660,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "1dd47b745585486d",
+        "type": "inject",
+        "z": "22b50258caf28e95",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 600,
+        "wires": [
+            [
+                "83169f326a3b49b9"
+            ]
+        ]
+    },
+    {
+        "id": "83169f326a3b49b9",
+        "type": "change",
+        "z": "22b50258caf28e95",
+        "name": "Username",
+        "rules": [
+            {
+                "t": "set",
+                "p": "username",
+                "pt": "msg",
+                "to": "$globalContext('vault')('Settings').getGroup('production').username",
+                "tot": "jsonata"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 310,
+        "y": 600,
+        "wires": [
+            [
+                "258761496e43c5b7"
+            ]
+        ]
+    },
+    {
+        "id": "258761496e43c5b7",
+        "type": "debug",
+        "z": "22b50258caf28e95",
+        "name": "debug 6",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 480,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "c66109141ed275df",
+        "type": "inject",
+        "z": "22b50258caf28e95",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 200,
+        "wires": [
+            [
+                "aedf7c9a2818d362"
+            ]
+        ]
+    },
+    {
+        "id": "aedf7c9a2818d362",
+        "type": "vault",
+        "z": "22b50258caf28e95",
+        "name": "CurrentEnvironment",
+        "vault": "e52ac488e8307f30",
+        "properties": [
+            {
+                "group": "config",
+                "property": "currentEnvironment",
+                "output": "msg.currentEnvironment"
+            }
+        ],
+        "x": 340,
+        "y": 200,
+        "wires": [
+            [
+                "8380b54ae006cad4"
+            ]
+        ]
+    },
+    {
+        "id": "ce1604af10f9c618",
+        "type": "debug",
+        "z": "22b50258caf28e95",
+        "name": "debug 7",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 840,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "21201c5baf9b482d",
+        "type": "vault",
+        "z": "22b50258caf28e95",
+        "name": "Staging",
+        "vault": "e52ac488e8307f30",
+        "properties": [
+            {
+                "group": "staging",
+                "property": "password",
+                "output": "msg.password"
+            },
+            {
+                "group": "staging",
+                "property": "endpoint",
+                "output": "msg.endpoint"
+            }
+        ],
+        "x": 680,
+        "y": 240,
+        "wires": [
+            [
+                "ce1604af10f9c618"
+            ]
+        ]
+    },
+    {
+        "id": "8380b54ae006cad4",
+        "type": "switch",
+        "z": "22b50258caf28e95",
+        "name": "Switch",
+        "property": "currentEnvironment",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "production",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "staging",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 530,
+        "y": 200,
+        "wires": [
+            [
+                "b1a27571cbb2e699"
+            ],
+            [
+                "21201c5baf9b482d"
+            ]
+        ]
+    },
+    {
+        "id": "b1a27571cbb2e699",
+        "type": "vault",
+        "z": "22b50258caf28e95",
+        "name": "Production",
+        "vault": "e52ac488e8307f30",
+        "properties": [
+            {
+                "group": "production",
+                "property": "password",
+                "output": "msg.password"
+            },
+            {
+                "group": "production",
+                "property": "endpoint",
+                "output": "msg.endpoint"
+            }
+        ],
+        "x": 690,
+        "y": 180,
+        "wires": [
+            [
+                "3df1d249ddf4402d"
+            ]
+        ]
+    },
+    {
+        "id": "3df1d249ddf4402d",
+        "type": "debug",
+        "z": "22b50258caf28e95",
+        "name": "debug 8",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 840,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "e52ac488e8307f30",
+        "type": "vault-config",
+        "name": "Settings",
+        "structure": {
+            "config": [
+                "currentEnvironment"
+            ],
+            "production": [
+                "username",
+                "password",
+                "endpoint"
+            ],
+            "staging": [
+                "username",
+                "password",
+                "endpoint"
+            ]
+        },
+        "credentials": {
+            "store": "{\"config\":{\"currentEnvironment\":{\"value\":\"production\",\"type\":\"str\"}},\"production\":{\"username\":{\"value\":\"prod_user\",\"type\":\"str\"},\"password\":{\"value\":\"prod_password_123\",\"type\":\"cred\"},\"endpoint\":{\"value\":\"https://api.production.com\",\"type\":\"str\"}},\"staging\":{\"username\":{\"value\":\"staging_user\",\"type\":\"str\"},\"password\":{\"value\":\"staging_password_456\",\"type\":\"cred\"},\"endpoint\":{\"value\":\"https://api.staging.com\",\"type\":\"str\"}}}"
+        }
+    },
+    {
+        "id": "2b2489a073a72daa",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-contrib-settings-vault": "2.0.1"
+        }
+    }
+]
