@@ -20,6 +20,31 @@
         gap: 8px;
     }
     
+    /* Flex sizing for field row children */
+    .vault-field-row > span:first-child {
+        flex-shrink: 0;
+        min-width: 40px;
+    }
+    
+    .vault-field-row > input.vault-field-name {
+        flex: 0 0 150px;
+        min-width: 100px;
+    }
+    
+    .vault-field-row > div {
+        flex: 1 1 auto;
+        min-width: 200px;
+    }
+    
+    .vault-field-row .validation-icon {
+        flex-shrink: 0;
+        min-width: 20px;
+    }
+    
+    .vault-field-row > button {
+        flex-shrink: 0;
+    }
+    
     .vault-field-row.validation-error, .property-row.validation-error {
         background-color: var(--red-ui-state-error-background, #ffe6e6);
     }
@@ -38,7 +63,7 @@
     
     .vault-properties-header {
         display: grid;
-        grid-template-columns: 2fr 2fr 2fr 50px;
+        grid-template-columns: 1.5fr 3fr 1.5fr 50px;
         gap: 10px;
         padding: 10px 12px;
         background: var(--red-ui-secondary-background, #f0f0f0);
@@ -59,6 +84,32 @@
     
     .validation-icon .fa-exclamation-triangle {
         color: var(--red-ui-state-error, #c00);
+    }
+    
+    /* Flex sizing for property row children */
+    .property-row > select {
+        flex: 0 0 150px;
+        min-width: 100px;
+    }
+    
+    .property-row > div {
+        flex: 1 1 auto;
+        min-width: 150px;
+    }
+    
+    .property-row .property-validation-icon {
+        flex-shrink: 0;
+        min-width: 20px;
+    }
+    
+    .property-row > button {
+        flex-shrink: 0;
+    }
+    
+    /* Make TypedInput widgets fill available space */
+    .vault-field-row .red-ui-typedInput-container,
+    .property-row .red-ui-typedInput-container {
+        width: 100% !important;
     }
 </style>
 
@@ -202,7 +253,7 @@
                     const entryKey = keyInput.val() || 'this entry';
                     const fieldCount = entryContainer.find('.vault-field-row').length;
                     
-                    if (confirm('Delete "' + entryKey + '" with ' + fieldCount + ' field(s)?')) {
+                    if (confirm('Delete "' + entryKey + '" with ' + fieldCount + ' property(ies)?')) {
                         entryContainer.remove();
                         RED.notify('Entry deleted', 'success');
                     }
@@ -219,7 +270,7 @@
                 const addFieldBtn = $('<button>', {
                     type: 'button',
                     class: 'red-ui-button add-field-btn'
-                }).html('<i class="fa fa-plus"></i> Add Field').on('click', function() {
+                }).html('<i class="fa fa-plus"></i> Add Property').on('click', function() {
                     addFieldRow(entryId, fieldsList, '', 'str', '');
                 });
                 
@@ -304,8 +355,8 @@
                     class: 'vault-field-row'
                 });
                 
-                // Field name input
-                const fieldNameLabel = $('<span>').text('Field:');
+                // Property name input
+                const fieldNameLabel = $('<span>').text('Property:');
                 
                 const fieldNameInput = $('<input>', {
                     type: 'text',
@@ -329,14 +380,14 @@
                     class: 'validation-icon'
                 }).html('');
                 
-                // Delete field button
+                // Delete property button
                 const deleteFieldBtn = $('<button>', {
                     type: 'button',
                     class: 'red-ui-button red-ui-button-small'
                 }).html('<i class="fa fa-times"></i>').on('click', function() {
-                    const fieldName = fieldNameInput.val() || 'this field';
+                    const fieldName = fieldNameInput.val() || 'this property';
                     if (fieldNameInput.val() || valueInput.typedInput('value')) {
-                        if (confirm('Delete field "' + fieldName + '"?')) {
+                        if (confirm('Delete property "' + fieldName + '"?')) {
                             fieldRow.remove();
                         }
                     } else {
@@ -381,10 +432,10 @@
                         return;
                     }
                     
-                    // Validate field name
+                    // Validate property name
                     if (!fieldName && currentValue) {
                         isValid = false;
-                        errorMsg = 'Field name required';
+                        errorMsg = 'Property name required';
                     }
                     
                     // Validate value based on type
@@ -432,7 +483,7 @@
                     }
                 }
                 
-                // Attach validation to field name input
+                // Attach validation to property name input
                 fieldNameInput.on('input', validateField);
                 
                 // Attach validation to value changes
@@ -496,16 +547,16 @@
                         return; // Skip this field
                     }
                     
-                    // Validate field name is provided
+                    // Validate property name is provided
                     if (fieldName === '') {
-                        RED.notify('Entry "' + key + '" has a field with no name. Please provide a field name or delete the field.', 'error');
+                        RED.notify('Entry "' + key + '" has a property with no name. Please provide a property name or delete the property.', 'error');
                         hasFieldError = true;
                         return false;
                     }
                     
-                    // Check for duplicate field names within this entry
+                    // Check for duplicate property names within this entry
                     if (credentials.hasOwnProperty(fieldName)) {
-                        RED.notify('Entry "' + key + '" has duplicate field name: "' + fieldName + '".', 'error');
+                        RED.notify('Entry "' + key + '" has duplicate property name: "' + fieldName + '".', 'error');
                         hasFieldError = true;
                         return false;
                     }
@@ -592,25 +643,27 @@
     
     <div class="form-row">
         <label style="width: 100%;"><i class="fa fa-lock"></i> Vault Entries</label>
-        <div id="vault-entries-list" style="margin-top: 10px; width: 100%; max-height: 500px; overflow-y: auto;"></div>
-    </div>
-    
-    <div class="form-row">
-        <button type="button" id="vault-add-entry" class="red-ui-button">
-            <i class="fa fa-plus"></i> Add Group
-        </button>
+        <div style="width: 100%; max-height: 500px; overflow-y: auto;">
+            <div id="vault-entries-list" style="margin-top: 10px; width: 100%;"></div>
+            
+            <div style="margin-top: 10px;">
+                <button type="button" id="vault-add-entry" class="red-ui-button">
+                    <i class="fa fa-plus"></i> Add Group
+                </button>
+            </div>
+            
+            <div class="form-tips" style="margin-top: 15px;">
+                <strong>What is this?</strong> This configuration node stores your settings in one secure, encrypted location. No external dependencies - uses Node-RED's built-in encryption.
+                <br><br>
+                <strong>How it works:</strong> Organize settings into <strong>Groups</strong> (logical groupings) containing <strong>Properties</strong> (individual values).
+                <br><br>
+                <strong>Example:</strong> Group "apiService" might contain properties: baseUrl ("https://api.example.com"), apiKey (your key), timeout (30000). Use <strong>cred</strong> type for sensitive values to mask them in the editor.
+            </div>
+        </div>
     </div>
     
     <!-- Hidden field to store the actual JSON -->
     <input type="hidden" id="node-config-input-store">
-    
-    <div class="form-tips">
-        <strong>What is this?</strong> This configuration node stores your settings in one secure, encrypted location. No external dependencies - uses Node-RED's built-in encryption.
-        <br><br>
-        <strong>How it works:</strong> Organize settings into <strong>Groups</strong> (logical groupings) containing <strong>Properties</strong> (individual values).
-        <br><br>
-        <strong>Example:</strong> Group "apiService" might contain properties: baseUrl ("https://api.example.com"), apiKey (your key), timeout (30000). Use <strong>cred</strong> type for sensitive values to mask them in the editor.
-    </div>
 </script>
 
 <script type="text/html" data-help-name="vault-config">
@@ -666,7 +719,7 @@
     <ol>
         <li>Click <strong>"Add Group"</strong> to create a new vault group</li>
         <li>Enter a unique group name (e.g., "apiService", "database")</li>
-        <li>Click <strong>"Add Field"</strong> to add properties within the group</li>
+        <li>Click <strong>"Add Property"</strong> to add properties within the group</li>
         <li>For each property, enter:
             <ul>
                 <li>Property name (e.g., "username", "password", "port")</li>
