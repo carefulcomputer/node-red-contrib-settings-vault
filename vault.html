@@ -253,7 +253,7 @@
                     const entryKey = keyInput.val() || 'this entry';
                     const fieldCount = entryContainer.find('.vault-field-row').length;
                     
-                    if (confirm('Delete "' + entryKey + '" with ' + fieldCount + ' field(s)?')) {
+                    if (confirm('Delete "' + entryKey + '" with ' + fieldCount + ' property(ies)?')) {
                         entryContainer.remove();
                         RED.notify('Entry deleted', 'success');
                     }
@@ -270,7 +270,7 @@
                 const addFieldBtn = $('<button>', {
                     type: 'button',
                     class: 'red-ui-button add-field-btn'
-                }).html('<i class="fa fa-plus"></i> Add Field').on('click', function() {
+                }).html('<i class="fa fa-plus"></i> Add Property').on('click', function() {
                     addFieldRow(entryId, fieldsList, '', 'str', '');
                 });
                 
@@ -355,8 +355,8 @@
                     class: 'vault-field-row'
                 });
                 
-                // Field name input
-                const fieldNameLabel = $('<span>').text('Field:');
+                // Property name input
+                const fieldNameLabel = $('<span>').text('Property:');
                 
                 const fieldNameInput = $('<input>', {
                     type: 'text',
@@ -380,14 +380,14 @@
                     class: 'validation-icon'
                 }).html('');
                 
-                // Delete field button
+                // Delete property button
                 const deleteFieldBtn = $('<button>', {
                     type: 'button',
                     class: 'red-ui-button red-ui-button-small'
                 }).html('<i class="fa fa-times"></i>').on('click', function() {
-                    const fieldName = fieldNameInput.val() || 'this field';
+                    const fieldName = fieldNameInput.val() || 'this property';
                     if (fieldNameInput.val() || valueInput.typedInput('value')) {
-                        if (confirm('Delete field "' + fieldName + '"?')) {
+                        if (confirm('Delete property "' + fieldName + '"?')) {
                             fieldRow.remove();
                         }
                     } else {
@@ -432,10 +432,10 @@
                         return;
                     }
                     
-                    // Validate field name
+                    // Validate property name
                     if (!fieldName && currentValue) {
                         isValid = false;
-                        errorMsg = 'Field name required';
+                        errorMsg = 'Property name required';
                     }
                     
                     // Validate value based on type
@@ -483,7 +483,7 @@
                     }
                 }
                 
-                // Attach validation to field name input
+                // Attach validation to property name input
                 fieldNameInput.on('input', validateField);
                 
                 // Attach validation to value changes
@@ -547,16 +547,16 @@
                         return; // Skip this field
                     }
                     
-                    // Validate field name is provided
+                    // Validate property name is provided
                     if (fieldName === '') {
-                        RED.notify('Entry "' + key + '" has a field with no name. Please provide a field name or delete the field.', 'error');
+                        RED.notify('Entry "' + key + '" has a property with no name. Please provide a property name or delete the property.', 'error');
                         hasFieldError = true;
                         return false;
                     }
                     
-                    // Check for duplicate field names within this entry
+                    // Check for duplicate property names within this entry
                     if (credentials.hasOwnProperty(fieldName)) {
-                        RED.notify('Entry "' + key + '" has duplicate field name: "' + fieldName + '".', 'error');
+                        RED.notify('Entry "' + key + '" has duplicate property name: "' + fieldName + '".', 'error');
                         hasFieldError = true;
                         return false;
                     }
@@ -719,7 +719,7 @@
     <ol>
         <li>Click <strong>"Add Group"</strong> to create a new vault group</li>
         <li>Enter a unique group name (e.g., "apiService", "database")</li>
-        <li>Click <strong>"Add Field"</strong> to add properties within the group</li>
+        <li>Click <strong>"Add Property"</strong> to add properties within the group</li>
         <li>For each property, enter:
             <ul>
                 <li>Property name (e.g., "username", "password", "port")</li>
