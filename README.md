@@ -64,14 +64,23 @@ The vault runtime node is what you place in your flows to retrieve values. You c
 
 ## Installation
 
-Install via npm in your Node-RED user directory (typically `~/.node-red`):
+### Via Palette Manager (Recommended)
+
+1. Open Node-RED editor
+2. Go to Menu → Manage palette → Install tab
+3. Search for `node-red-contrib-settings-vault`
+4. Click Install
+
+### Via npm
+
+Install in your Node-RED user directory (typically `~/.node-red`):
 
 ```bash
 cd ~/.node-red
 npm install node-red-contrib-settings-vault
 ```
 
-**Important:** Restart Node-RED after installation to load the nodes.
+**Important:** Restart Node-RED after npm installation to load the nodes.
 
 ### Requirements
 
