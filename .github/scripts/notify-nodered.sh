@@ -13,12 +13,15 @@ echo "🔍 Step 1: Fetching CSRF token..."
 curl -s -c "$COOKIE_FILE" https://flows.nodered.org/add/node -o "$PAGE_FILE"
 
 # Step 2: Extract CSRF token from the page
+# Temporarily disable 'set -e' for grep since it may not find the pattern
+set +e
 CSRF_TOKEN=$(grep 'add-node-csrf' "$PAGE_FILE" | sed -n 's/.*value="\([^"]*\)".*/\1/p')
+set -e
 
 if [ -z "$CSRF_TOKEN" ]; then
     echo "❌ Error: Could not extract CSRF token"
     rm -rf "$TEMP_DIR"
-    exit 1
+    exit 0
 fi
 
 echo "✅ CSRF token extracted: ${CSRF_TOKEN:0:20}..."
