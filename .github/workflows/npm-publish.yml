@@ -49,6 +49,17 @@ jobs:
         if: steps.check-version.outputs.exists == 'true'
         run: echo "Skipping publish - version ${{ steps.package-version.outputs.version }} already exists on npm"
 
+      - name: Wait for npm to propagate
+        if: steps.check-version.outputs.exists == 'false'
+        run: |
+          echo "⏳ Waiting 10 seconds for npm to propagate the new version..."
+          sleep 10
+          echo "✅ Ready to notify Flow Library"
+
+      - name: Notify Node-RED Flow Library
+        if: steps.check-version.outputs.exists == 'false'
+        run: bash .github/scripts/notify-nodered.sh
+
       - name: Create git tag
         if: steps.check-version.outputs.exists == 'false'
         run: |
