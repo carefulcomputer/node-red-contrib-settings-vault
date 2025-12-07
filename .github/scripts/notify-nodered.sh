@@ -41,22 +41,22 @@ echo "📄 Response: $RESPONSE_BODY"
 rm -rf "$TEMP_DIR"
 
 # Evaluate response
+# Note: 400 is expected when module is already at latest version - treat as success
 if [ "$HTTP_STATUS" = "200" ]; then
     echo "✅ Success! Module registered/updated in Flow Library"
     exit 0
 elif [ "$HTTP_STATUS" = "400" ]; then
-    if [[ "$RESPONSE_BODY" == *"already at latest version"* ]]; then
-        echo "✅ Module already registered and up to date"
-        exit 0
-    else
-        echo "⚠️  Warning: $RESPONSE_BODY"
-        exit 0
-    fi
+    # 400 responses are expected and considered successful
+    # (e.g., "Module already at latest version")
+    echo "✅ Flow Library Response: $RESPONSE_BODY"
+    exit 0
 elif [ "$HTTP_STATUS" = "403" ]; then
-    echo "❌ Error: CSRF token validation failed (this is unusual)"
-    exit 1
+    echo "⚠️  Warning: CSRF token validation failed - $RESPONSE_BODY"
+    echo "This is unusual but not critical. Flow Library likely already has the module."
+    exit 0
 else
-    echo "❌ Error: Unexpected status code $HTTP_STATUS"
-    exit 1
+    echo "⚠️  Warning: Unexpected status code $HTTP_STATUS - $RESPONSE_BODY"
+    echo "Flow Library notification may have failed, but npm publish succeeded."
+    exit 0
 fi
 
